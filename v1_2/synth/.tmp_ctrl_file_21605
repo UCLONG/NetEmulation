@@ -1,0 +1,2 @@
+LIBRARY    alloc_simple_LIB
+  REFERENCE    ./kit/milkyway/techFreePDK45

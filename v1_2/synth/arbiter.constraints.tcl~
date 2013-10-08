@@ -1,0 +1,5 @@
+create_clock -name "clk" -period 0.5 -waveform {0 0.25} {clk}
+set_dont_touch_network clk
+
+set_dont_touch_network reset
+set_ideal_network reset
