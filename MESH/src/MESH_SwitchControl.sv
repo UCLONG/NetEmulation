@@ -1,25 +1,25 @@
 // IP Block    : MESH
-// Function    : Allocator
-// Module name : MESH_Allocator
+// Function    : SwitchControl
+// Module name : MESH_SwitchControl
 // Description : 
 // Uses        :
 
 `include "config.sv"
 
-module MESH_Allocator
+module MESH_SwitchControl
 
-  input  logic clk;
-  input  logic reset_n;
+ (input  logic clk,
+  input  logic reset_n,
   
-  input  logic [0:4] i_stop;               // hold ports signal from downstream router
-  input  logic [0:4] i_req_output   [0:4]; // each local input unit requests [c,n,e,s,w] output port using packed bits
+  input  logic [0:4] i_stop,                // hold ports signal from downstream router
+  input  logic [0:4] i_req_output   [0:4],  // each local input unit requests [c,n,e,s,w] output port using packed bits
   
-  output logic [2:0] o_sel          [0:4]; // Input ports select an output port using a 3 bit packed unsigned number
-  output logic       o_enable       [0:4]; // Indicate to the [c,n,e,s,w] local input unit that the data will be read
-  output logic       o_valid        [0:4]; // Indicate to the [c,n,e,s,w] downstream input unit that the data should be read
+  output logic [2:0] o_sel          [0:4],  // Input ports select an output port using a 3 bit packed unsigned number
+  output logic       o_enable       [0:4],  // Indicate to the [c,n,e,s,w] local input unit that the data will be read
+  output logic       o_valid        [0:4],  // Indicate to the [c,n,e,s,w] downstream input unit that the data should be read
   
-         logic [0:4] l_req_matrix   [0:4]; // Packed requests for the [c,n,e,s,w] output
-         logic [0:4] l_grant_matrix [0:4]; // Packed grants for the [c,n,e,s,w] output 
+         logic [0:4] l_req_matrix   [0:4],  // Packed requests for the [c,n,e,s,w] output
+         logic [0:4] l_grant_matrix [0:4]); // Packed grants for the [c,n,e,s,w] output 
   
   // Populate request matrix.  Output port requests will not be made if the corresponding stop is asserted.
   always_comb begin
