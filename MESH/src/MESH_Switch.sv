@@ -1,16 +1,22 @@
+// --------------------------------------------------------------------------------------------------------------------
 // IP Block    : MESH
-// Function    : CrossBar
-// Module name : MESH_CrossBar
-// Description : 5x5 packet_mesh CrossBar.  
+// Function    : Switch
+// Module name : MESH_Switch
+// Description : 5x5 packet_t CrossBar Switch. 
+//             : Untested.
+// -------------------------------------------------------------------------------------------------------------------- 
 
 `include "config.sv"
 
-module MESH_CrossBar
+module MESH_Switch
 
-  input  logic       [2:0] i_sel  [0:4] // Input ports select an output port using a 3 bit unsigned number
-  input  packet_mesh       i_data [0:4] // Data in
-  output packet_mesh       o_data [0:4] // Data out
+  input  logic    [2:0] i_sel  [0:4] // Input ports select an output port using a 3 bit unsigned number
+  input  packet_t       i_data [0:4] // Data in
+  
+  output packet_t       o_data [0:4] // Data out
 
+  // Cross Bar Switch.
+  // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
 
     // Output 0

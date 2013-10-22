@@ -1,3 +1,4 @@
+// --------------------------------------------------------------------------------------------------------------------
 // IP Block    : LIB
 // Function    : FIFO
 // Module name : LIB_FIFO
@@ -5,6 +6,7 @@
 //             : for both the read and write and write pointer.  The pointers are each a single bit which rotate
 //             : around the different pointer stores according to read and write requests.
 // Notes       : FIFO can be any size and depth.
+// --------------------------------------------------------------------------------------------------------------------
 
 module LIB_FIFO
 

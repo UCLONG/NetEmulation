@@ -1,3 +1,4 @@
+// --------------------------------------------------------------------------------------------------------------------
 // IP Block    : LIB
 // Function    : FIFO
 // Module name : LIB_FIFO_tb
@@ -5,6 +6,7 @@
 // Uses        : LIB_FIFO.sv, LIB_FIFO_wave.do
 // Notes       : If adding a test case, include a step by step explanation.  There should be no need to remove
 //             : test cases.
+// --------------------------------------------------------------------------------------------------------------------
 
 module LIB_FIFO_tb;
   
@@ -23,13 +25,19 @@ module LIB_FIFO_tb;
   
   logic [3:0] test_case = 1;
   
+  // DUT
+  // ------------------------------------------------------------------------------------------------------------------
   LIB_FIFO #(.WIDTH(4),.DEPTH(4)) INST_LIB_FIFO (.*);
   
+  // Clock Generation
+  // ------------------------------------------------------------------------------------------------------------------
   initial begin
     clk = 0;
     forever #100ps clk = ~clk;
   end
   
+  // Test Cases.
+  // ------------------------------------------------------------------------------------------------------------------
   initial begin
   
     case (test_case)

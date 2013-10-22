@@ -1,3 +1,4 @@
+// --------------------------------------------------------------------------------------------------------------------
 // IP Block    : LIB
 // Function    : pktFIFO
 // Module name : LIB_pktFIFO
@@ -7,6 +8,7 @@
 //             : according to read and write requests.
 // Uses        : config.sv
 // Notes       : FIFO uses the packet definition from config.sv.
+// --------------------------------------------------------------------------------------------------------------------
 
 `include "config.sv"
 
