@@ -6,7 +6,7 @@
 //             : Untested.
 // -------------------------------------------------------------------------------------------------------------------- 
 
-`include "C://Users//Danny//Documents//GitHub//NetEmulation//MESH//src//config.sv"
+`include "config.sv"
 
 module MESH_Switch
 

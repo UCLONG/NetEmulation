@@ -17,17 +17,17 @@ module MESH_SwitchControl
   
   output logic [2:0] o_sel          [0:4],  // Output ports select an input port using a 3 bit packed unsigned number
   output logic       o_en           [0:4],  // Indicate to [c,n,e,s,w] local input unit that data will be read
-  output logic       o_val          [0:4],  // Indicate to [c,n,e,s,w] downstream input unit that data should be read
+  output logic       o_val          [0:4]); // Indicate to [c,n,e,s,w] downstream input unit that data should be read
   
-         logic [0:4] l_req_matrix   [0:4],  // Packed requests for the [c,n,e,s,w] output
-         logic [0:4] l_grant_matrix [0:4]); // Packed grants for the [c,n,e,s,w] output 
+         logic [0:4] l_req_matrix   [0:4];  // Packed requests for the [c,n,e,s,w] output
+         logic [0:4] l_grant_matrix [0:4]; // Packed grants for the [c,n,e,s,w] output 
   
   // Populate request matrix.  Output port requests will not be made if the corresponding enable is low.
   // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
     for (int i=0; i<5; i++) begin
       for (int j=0; j<5; j++) begin
-        l_req_matrix[i][j] = i_output_req[i][j] && i_en[j];
+        l_req_matrix[i][j] = i_output_req[j][i] && i_en[i];
       end
     end
   end
@@ -47,8 +47,8 @@ module MESH_SwitchControl
   // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
     for (int i=0; i<5; i++) begin
-      o_val[i]   = |{l_grant_matrix[0][i], l_grant_matrix[1][i], l_grant_matrix[2][i], l_grant_matrix[3][i], l_grant_matrix[4][i]};
-      o_en[i]  = |l_grant_matrix[i];
+      o_en[i]   = |{l_grant_matrix[0][i], l_grant_matrix[1][i], l_grant_matrix[2][i], l_grant_matrix[3][i], l_grant_matrix[4][i]};
+      o_val[i]  = |l_grant_matrix[i];
     end
   end
   

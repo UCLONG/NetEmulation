@@ -11,7 +11,7 @@
 //             : Untested.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "C://Users//Danny//Documents//GitHub//NetEmulation//MESH//src//config.sv"
+`include "config.sv"
 
 module MESH_Router
 
@@ -30,9 +30,9 @@ module MESH_Router
   
   // Downstream Bus
   // ------------------------------------------------------------------------------------------------------------------
-  input  logic    i_en       [0:4],  // Enables output to downstream [core, north, east, south, west]
   output packet_t o_data     [0:4],  // Outputs data to downstream [core, north, east, south, west]
-  output logic    o_data_val [0:4]); // Validates output data to downstream [core, north, east, south, west]
+  output logic    o_data_val [0:4],  // Validates output data to downstream [core, north, east, south, west]
+  input  logic    i_en       [0:4]); // Enables output to downstream [core, north, east, south, west]
   
   // Local
   // ------------------------------------------------------------------------------------------------------------------
@@ -56,7 +56,8 @@ module MESH_Router
                          .o_data_val(l_data_val[i]), // To the route calculator
                          .o_en(o_en[i]),             // To the upstream routers
                          .o_full(),                  // Not connected
-                         .o_empty());                // Not connected
+                         .o_empty(),                 // Not connected
+                         .o_near_empty());           // Not connected
     end
   endgenerate
   
@@ -79,7 +80,7 @@ module MESH_Router
     inst_MESH_SwitchControl (.clk,
                              .reset_n,
                              .i_en(i_en),                    // From the downstream router
-                             .i_output_req(l_output_req[i]), // From the route calculator
+                             .i_output_req(l_output_req),    // From the route calculator
                              .o_sel(l_sel),                  // To the Switch
                              .o_en(l_en),                    // To the local FIFOs
                              .o_val(o_data_val));            // To the downstream router

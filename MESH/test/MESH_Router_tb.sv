@@ -11,7 +11,7 @@
 //             : Untested.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "C://Users//Danny//Documents//GitHub//NetEmulation//MESH//src//config.sv"
+`include "config.sv"
 
 module MESH_Router_tb;
 
@@ -27,7 +27,7 @@ module MESH_Router_tb;
   // ------------------------------------------------------------------------------------------------------------------
   logic    i_en       [0:4];  // Enables output to downstream [core, north, east, south, west]
   packet_t o_data     [0:4];  // Outputs data to downstream [core, north, east, south, west]
-  logic    o_data_val [0:4]; // Validates output data to downstream [core, north, east, south, west]
+  logic    o_data_val [0:4];  // Validates output data to downstream [core, north, east, south, west]
   
   // DUT
   // ------------------------------------------------------------------------------------------------------------------       
@@ -54,6 +54,7 @@ module MESH_Router_tb;
   always_ff@(posedge clk) begin
     if(~reset_n) begin
       for(int i=0; i<5; i++) begin
+        i_data[i].data   <= 1;
         i_data[i].source <= i; // For ease of debug, this does not change.
         i_data[i].dest   <= 0;
         i_data[i].valid  <= 0;
@@ -61,33 +62,18 @@ module MESH_Router_tb;
       end
     end else begin
       for(int i=0; i<5; i++) begin
-        i_data[i].dest  <= $dist_uniform(i_data[i].dest, 0, 3); // Equal chance to be any node destination
-        i_data[i].valid <= $dist_uniform(i_data_val, 0, 1);     // 50% of the time input data will be valid.
-        i_en[i]         <= $dist_uniform((i_data_val+5), 0, 1); // Downstream write permission 50% of the time.     
+        i_data[i].data  <= i_data[i].valid ? i_data[i].data + 1 : i_data[i].data; // Gives valid packet numbers
+        i_data[i].dest  <= $urandom_range(16); // Equal chance to be any node destination
+        i_data[i].valid <= $urandom_range(1);  // 50% of the time input data will be valid.
+        i_en[i]         <= $urandom_range(1);  // Downstream write permission 50% of the time.     
       end
     end
   end
  
-  // Input Data Generation.  Input data is chosen to display a hex word dependent upon which direction it is headed.
+  // packet_t carries a valid in the packet, the mesh flow control uses its own valid/enable protocol and flag gen.
+  // for simplicity they are just connected here.
   // ------------------------------------------------------------------------------------------------------------------   
   always_comb begin
-    for(int i=0; i<5; i++) begin
-      if(i_data[i].dest[1:0] == 1) begin
-        if(i_data[i].dest[3:2] == 1) begin
-          i_data[i].data = 16'hDEAD; // Local Core
-        end else if(i_data[i].dest[3:2] > 1) begin
-          i_data[i].data = 16'hBEEF; // North
-        end else begin
-          i_data[i].data = 16'hCAFE; // South
-        end
-      end else if(i_data[i].dest[1:0] > 1) begin
-        i_data[i].data = 16'hB0A7; // East
-      end else begin
-        i_data[i].data = 16'h10AD; // West
-      end
-    end
-    // packet_t carries a valid in the packet, the mesh flow control uses its own valid/enable protocol and flag gen.
-    // for simplicity they are just connected here.
     for(int i=0; i<5; i++) begin
       i_data_val[i] = i_data[i].valid;
     end

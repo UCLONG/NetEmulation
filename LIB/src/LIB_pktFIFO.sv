@@ -26,7 +26,7 @@ module LIB_pktFIFO
   output logic    o_data_val,        // Validates the data on o_data, held high until input enable received
   output logic    o_en,              // Outputs an enable, if high, i_data is written to memory
   
-  output logic    o_full, o_empty);  // Control Flags
+  output logic    o_full, o_empty, o_near_empty);  // Control Flags
   
   typedef struct{logic rd_ptr, wr_ptr;} ptr;
   
@@ -50,6 +50,7 @@ module LIB_pktFIFO
       o_data_val              <= 0;
       o_full                  <= 0;
       o_empty                 <= 1;
+      o_near_empty            <= 0;
       o_en                    <= 1;          
     end
  
@@ -72,13 +73,25 @@ module LIB_pktFIFO
       // Output Write
       // --------------------------------------------------------------------------------------------------------------
       if(i_en && ~o_empty) begin       
-        // Data was read from memory.  Load next data into output.
-        for(int i=0; i<DEPTH; i++) begin
-          if (l_mem_ptr[i].rd_ptr) begin
-            if(i<DEPTH-1) begin
-              o_data <= l_mem[i+1];
-            end else begin
-              o_data <= l_mem[0];
+        // Data was read from memory so the next data needs loading into the output.
+        if(o_near_empty) begin
+          // Next memory location is currently empty, 
+          if(i_data_val) begin
+            // New data is being loaded 
+            o_data <= i_data;
+          end else begin
+            // FIFO has emptied
+            o_data <= o_data;
+          end
+        end else begin
+          // Next memory location all ready contains next data
+          for(int i=0; i<DEPTH; i++) begin
+            if (l_mem_ptr[i].rd_ptr) begin
+              if(i<DEPTH-1) begin
+                o_data <= l_mem[i+1];
+              end else begin
+                o_data <= l_mem[0];
+              end
             end
           end
         end
@@ -88,10 +101,10 @@ module LIB_pktFIFO
         end
         l_mem_ptr[0].rd_ptr <= l_mem_ptr[DEPTH-1].rd_ptr;
       end else if(o_empty && i_data_val) begin
-        // Data was written into empty memory, output should be updated instantly.
+        // Data was written into empty memory, output should be updated immediately
         o_data <= i_data;
       end else begin
-        // Data was not read from memory.  Keep output data the same.
+        // Data was not read from memory, the output currently holds a valid packet, keep output data the same.
         for(int i=0; i<DEPTH; i++) begin
           if(l_mem_ptr[i].rd_ptr) o_data <= l_mem[i];
         end
@@ -125,10 +138,36 @@ module LIB_pktFIFO
           end
         end      
       end else if (o_empty) begin
-        o_empty <= (i_data_val) ? 0 : 1;       
+        o_empty <= (i_data_val) ? 0 : 1;     
       end 
       
       assign o_data_val = ~o_empty;
+      
+      // Nearly Empty Flag.
+      // --------------------------------------------------------------------------------------------------------------
+      if (~o_near_empty) begin
+       
+        if(o_empty) begin
+          o_near_empty <= i_data_val ? 1 : 0;
+        end else if(~o_empty) begin
+          if(~i_data_val && i_en) begin
+            for(int i=0; i<DEPTH; i++) begin
+              if(l_mem_ptr[i].rd_ptr) begin   
+                if(i<DEPTH-2) begin
+                  o_near_empty <= l_mem_ptr[i+2].wr_ptr;
+                end else if(i==DEPTH-1) begin
+                  o_near_empty <= l_mem_ptr[0].wr_ptr;
+                end else begin
+                  o_near_empty <= l_mem_ptr[1].wr_ptr;
+                end
+              end
+            end
+          end
+        end
+      
+      end else if(o_near_empty) begin  
+        o_near_empty <= (~(i_en ^^ i_data_val)) ? 1 : 0;   
+      end
       
     end 
   end 
