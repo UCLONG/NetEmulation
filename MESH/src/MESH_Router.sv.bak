@@ -62,7 +62,7 @@ module MESH_Router
   
   generate
     for (genvar i=0; i<5; i++) begin    
-      MESH_RouteCalculator #(.X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC)) 
+      MESH_RouteCalculator #(.X_NODES(X_NODES), Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC)) 
         gen_MESH_RouteCalculator (.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
                                   .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
                                   .i_val(l_data_val[i]),                                      // From local FIFO

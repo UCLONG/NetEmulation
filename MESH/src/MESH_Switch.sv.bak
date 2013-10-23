@@ -30,7 +30,7 @@ module MESH_Switch
     endcase
   
     // Output 1
-    case (i_sel[1])
+    case (sel[1])
       3'b000  : o_data[1] = i_data[0];
       3'b001  : o_data[1] = i_data[1];
       3'b010  : o_data[1] = i_data[2];
@@ -40,7 +40,7 @@ module MESH_Switch
     endcase
 
     // Output 2
-    case (i_sel[2])
+    case (sel[2])
       3'b000  : o_data[2] = i_data[0];
       3'b001  : o_data[2] = i_data[1];
       3'b010  : o_data[2] = i_data[2];
@@ -50,7 +50,7 @@ module MESH_Switch
     endcase
 
     // Output 3
-    case (i_sel[3])
+    case (sel[3])
       3'b000  : o_data[3] = i_data[0];
       3'b001  : o_data[3] = i_data[1];
       3'b010  : o_data[3] = i_data[2];
@@ -60,7 +60,7 @@ module MESH_Switch
     endcase
 
     // Output 4
-    case (i_sel[4])
+    case (sel[4])
       3'b000  : o_data[4] = i_data[0];
       3'b001  : o_data[4] = i_data[1];
       3'b010  : o_data[4] = i_data[2];

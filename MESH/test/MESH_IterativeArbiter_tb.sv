@@ -1,9 +1,10 @@
+// --------------------------------------------------------------------------------------------------------------------
 // IP Block    : MESH
 // Function    : IterativeArbiter_tb
 // Module name : MESH_IterativeArbiter_tb
 // Uses        : MESH_IterativeArbiter.sv
 // Description : Test bench for an M-bit variable priority iterative arbiter including round robin priority generation.
-// Notes       : 
+// --------------------------------------------------------------------------------------------------------------------
 
 module MESH_IterativeArbiter_tb;
 
@@ -39,7 +40,7 @@ module MESH_IterativeArbiter_tb;
     if(~reset_n) begin
       i_request <= 0;
     end else begin
-      i_request <= $dist_uniform(0, 0, 32);
+      i_request <= $dist_uniform(i_request, 0, 32);
     end
   end
 

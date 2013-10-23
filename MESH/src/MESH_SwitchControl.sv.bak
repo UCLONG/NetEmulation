@@ -48,7 +48,7 @@ module MESH_SwitchControl
   always_comb begin
     for (int i=0; i<5; i++) begin
       o_val[i]   = |{l_grant_matrix[0][i], l_grant_matrix[1][i], l_grant_matrix[2][i], l_grant_matrix[3][i], l_grant_matrix[4][i]};
-      o_en[i]  = |l_grant_matrix[i];
+      o_en[i]  = |o_grant[i];
     end
   end
   
@@ -56,13 +56,13 @@ module MESH_SwitchControl
   // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
     for (int i = 0; i < 5; i++) begin
-      unique casez (l_grant_matrix[i])
-        5'b00001 : o_sel[i] = 100; // input 4
-        5'b0001? : o_sel[i] = 011; // input 3
-        5'b001?? : o_sel[i] = 010; // input 2
-        5'b01??? : o_sel[i] = 001; // input 1
-        5'b1???? : o_sel[i] = 000; // input 0
-        default  : o_sel[i] = 'z;
+      unique casez (grantMatrix[i])
+        5'b00001 : sel[i] = 100; // input 4
+        5'b0001? : sel[i] = 011; // input 3
+        5'b001?? : sel[i] = 010; // input 2
+        5'b01??? : sel[i] = 001; // input 1
+        5'b1???? : sel[i] = 000; // input 0
+        default  : sel[i] = z;
       endcase
     end      
   end
