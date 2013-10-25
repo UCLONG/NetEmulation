@@ -20,7 +20,7 @@ module MESH_SwitchControl
   output logic       o_val          [0:4]); // Indicate to [c,n,e,s,w] downstream input unit that data should be read
   
          logic [0:4] l_req_matrix   [0:4];  // Packed requests for the [c,n,e,s,w] output
-         logic [0:4] l_grant_matrix [0:4]; // Packed grants for the [c,n,e,s,w] output 
+         logic [0:4] l_grant_matrix [0:4];  // Packed grants for the [c,n,e,s,w] output 
   
   // Populate request matrix.  Output port requests will not be made if the corresponding enable is low.
   // ------------------------------------------------------------------------------------------------------------------
@@ -36,10 +36,10 @@ module MESH_SwitchControl
   // ------------------------------------------------------------------------------------------------------------------
   generate
     for (genvar i=0; i<5; i++) begin
-      MESH_IterativeArbiter gen_MESH_IterativeArbiter (.clk,
-                                                       .reset_n,
-                                                       .i_request(l_req_matrix[i]),
-                                                       .o_grant(l_grant_matrix[i]));
+      LIB_PPE_RoundRobin #(.M(5)) gen_LIB_PPE_RoundRobin (.clk,
+                                                          .reset_n,
+                                                          .i_request(l_req_matrix[i]),
+                                                          .o_grant(l_grant_matrix[i]));
     end
   endgenerate
   
@@ -47,7 +47,12 @@ module MESH_SwitchControl
   // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
     for (int i=0; i<5; i++) begin
-      o_en[i]   = |{l_grant_matrix[0][i], l_grant_matrix[1][i], l_grant_matrix[2][i], l_grant_matrix[3][i], l_grant_matrix[4][i]};
+      o_en[i]   = |{l_grant_matrix[0][i], 
+                    l_grant_matrix[1][i], 
+                    l_grant_matrix[2][i], 
+                    l_grant_matrix[3][i], 
+                    l_grant_matrix[4][i]};
+ 
       o_val[i]  = |l_grant_matrix[i];
     end
   end
