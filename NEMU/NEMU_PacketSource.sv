@@ -4,7 +4,7 @@
 // Description : A SystemVerilog code that produces packets of data used for testing of a NoC
 // Uses        : config.sv
 
-`include "config.sv"
+`include "config.sv";
 
 module packet_source(
   input logic         clk,
@@ -14,21 +14,22 @@ module packet_source(
   output packet_t     o_pkt_out, 
   output logic        i_fifo_error);
   
-  parameter PORT_NO = 0; //assigns a port_number which will be stored in o_pkt_out.source
+  parameter PORT_NO_X = 0;  //assigns a port_number which will be stored in o_pkt_out.source
+  parameter PORT_NO_Y = 0;
   
   // Internal signals
   logic [7:0]         l_dest /* synthesis keep */; /*pocket destination*/
   logic [31:0]        l_r32 /* synthesis keep */;  /*random number used to determine if a pocket should be generated. Pockets generated if random number < 'RATE (set in configure.sv) */
   logic [39:0]        l_fifo_din, l_fifo_dout; 
   logic               l_wr_en, l_rd_en, l_empty, l_full; //fifo control - error reporting
-  integer             l_seed = (PORT_NO+1) *5; /*new seed for random numbers generated each iteration - the initial seed, which is used in case of reset_n=1 is set in config.sv */
+  integer             l_seed = ({PORT_NO_X, PORT_NO_Y}+1) *5; /*new seed for random numbers generated each iteration - the initial seed, which is used in case of reset_n=1 is set in config.sv */
   integer             l_r; 
 
   
 
 	always_ff @(posedge clk or posedge reset_n)
 		if (reset_n) begin
-			l_r32 <= (2^32)-(`SEED * (PORT_NO+1));
+			l_r32 <= (2^32)-(`SEED * ({PORT_NO_X, PORT_NO_Y}+1));
 			l_dest <= 0;
 		end else begin	
 			l_r32 <= {l_r32[30:0], (l_r32[0] ^ l_r32[1] ^ l_r32[21] ^ l_r32[31])};		
@@ -37,7 +38,7 @@ module packet_source(
 
 `ifdef UNIFORM		
 	// Check for packet generation
-	always_ff @(posedge clk or posedge rst)
+	always_ff @(posedge clk or posedge reset_n)
 	   if (reset_n) begin
 	     l_wr_en	<= 0;
 	   end else
@@ -137,20 +138,27 @@ module packet_source(
 	 always_comb
 	 begin
 	    // Generate packet structure
-	    if (l_fifo_dout[31+log2(`PORTS):32]>=PORT_NO)
-        o_pkt_out.dest = l_fifo_dout[31+log2(`PORTS):32]+1;
+	    if (l_fifo_dout[31+log2AndRoundUp(`X_PORTS):32]>=PORT_NO_X)
+        o_pkt_out.dest_x = l_fifo_dout[31+log2AndRoundUp(`X_PORTS):32]+1;
       else
-        o_pkt_out.dest = l_fifo_dout[31+log2(`PORTS):32];
+        o_pkt_out.dest_x = l_fifo_dout[31+log2AndRoundUp(`X_PORTS):32];
+        
+      if (l_fifo_dout[31+log2AndRoundUp(`X_PORTS)+log2AndRoundUp(`Y_PORTS):32]>=PORT_NO_Y)
+        o_pkt_out.dest_y = l_fifo_dout[31+log2AndRoundUp(`X_PORTS)+log2AndRoundUp(`Y_PORTS):32]+1;
+      else
+        o_pkt_out.dest_y = l_fifo_dout[31+log2AndRoundUp(`X_PORTS)+log2AndRoundUp(`Y_PORTS):32];
+        
       l_rd_en = (!i_net_full) && (!l_empty);
-      o_pkt_out.source = PORT_NO;
+      o_pkt_out.source_x = PORT_NO_X;
+      o_pkt_out.source_y = PORT_NO_Y;
       o_pkt_out.data = l_fifo_dout[31:0];
       o_pkt_out.valid = (!l_empty) && (!i_net_full); 
       
       // Set input FIFO read enable bit
-      l_rd_en = (!l_empty) && (!i_net_full); 
+        l_rd_en = (!l_empty) && (!i_net_full); 
 
       // Set input fifo full flag
-      i_fifo_error = l_full;
+        i_fifo_error = l_full;
    end   
              
          

@@ -4,7 +4,7 @@
 // Description : Packet_sink is attached to each port, records number of packets sent, number of pockets received, and latency
 // Uses        : config.sv
 
-`include "config.sv"
+`include "config.sv";
 
 module packet_sink (
   input logic clk, 
@@ -29,7 +29,7 @@ module packet_sink (
 	     l_dest_error <= 0;
 	     for (int k=0;k<=`PORTS;k++) begin
 	       for (int j=0;j<=`PORTS;j++) begin
-      	   i_latency[k][j]  <= 0;
+      	   l_latency[k][j]  <= 0;
       	   l_pkt_count_rx[k][j]  <= 0;
  	       l_pkt_count_tx[k][j]  <= 0;
 	       end
@@ -39,14 +39,14 @@ module packet_sink (
 	   // Count Rx packets and i_latency
 	   if (i_measure) begin
 	     if (i_pkt_rx[k].valid) begin
-        	i_latency[i_pkt_rx[k].source][k] <= i_latency[i_pkt_rx[k].source][k] + (i_timestamp - i_pkt_rx[k].data[31:0]);
-        	l_pkt_count_rx[i_pkt_rx[k].source][k] <= l_pkt_count_rx[i_pkt_rx[k].source][k] + 1;
-        	if (i_pkt_rx[k].dest != k)
+        	l_latency[{i_pkt_rx[k].source_x,i_pkt_rx[k].source_y}][k] <= l_latency[{i_pkt_rx[k].source_x,i_pkt_rx[k].source_y}][k] + (i_timestamp - i_pkt_rx[k].data[31:0]);
+        	l_pkt_count_rx[{i_pkt_rx[k].source_x,i_pkt_rx[k].source_y}][k] <= l_pkt_count_rx[{i_pkt_rx[k].source_x,i_pkt_rx[k].source_y}][k] + 1;
+        	if ({i_pkt_rx[k].dest_x,i_pkt_rx[k].dest_y} != k)
             	   l_dest_error[k] <= 1;
 	     end
 		 //this is to count how many pockets have been sent from a node
 	     if (i_pkt_tx[k].valid)
-          	l_pkt_count_tx[k][i_pkt_tx[k].dest] <= l_pkt_count_tx[k][i_pkt_tx[k].dest] + 1;
+          	l_pkt_count_tx[k][{i_pkt_tx[k].dest_x,i_pkt_tx[k].dest_y}] <= l_pkt_count_tx[k][{i_pkt_tx[k].dest_x,i_pkt_tx[k].dest_y}] + 1;
    	end
 	end
 end
@@ -57,18 +57,10 @@ end
       for (int h=0;h<`PORTS;h++) begin
         l_total_pkts += l_pkt_count_rx[j][h];
       end
+   end
  end
+
  
 
-  //////////////////////////////////////////////////////////////////////
-  /////////////////////////// CHIPSCOPE ////////////////////////////////
-  //////////////////////////////////////////////////////////////////////
-  `ifdef SYNTHESIS
-   end    
- $write("rx_pkt_count = %d\n", total_pkts);
-  // Instantiate chipscope module for controlling packet generation rate and 
-  // communicating i_latency information
-  `endif
-
-endmodule      
+endmodule 
             
