@@ -1,12 +1,13 @@
 // --------------------------------------------------------------------------------------------------------------------
-// IP Block    : MESH
-// Function    : IterativeArbiter_tb
-// Module name : MESH_IterativeArbiter_tb
-// Uses        : MESH_IterativeArbiter.sv
+// IP Block    : LIB
+// Sub-block   : PPE
+// Function    : RoundRobin
+// Module name : LIB_PPE_RoundRobin_tb
+// Uses        : LIB_PPE_RoundRobin_tb.sv
 // Description : Test bench for an M-bit variable priority iterative arbiter including round robin priority generation.
 // --------------------------------------------------------------------------------------------------------------------
 
-module MESH_IterativeArbiter_tb;
+module LIB_PPE_RoundRobin_tb;
 
   logic clk;
   logic reset_n;

@@ -12,6 +12,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 `include "MESH_Config.sv"
+`include "config.sv"
 
 module MESH_Router
 
@@ -37,15 +38,17 @@ module MESH_Router
   // Local Signals common to VC and no VC instance
   // ------------------------------------------------------------------------------------------------------------------
 
-         logic    [2:0] l_sel          [0:4]; // Connects switch control switch selection to switch
          packet_t       l_data         [0:4]; // Connects FIFO data outputs to switch
          logic    [0:4] l_output_req   [0:4]; // Request sent to SwitchControl
-         logic    [0:4] l_output_grant [0:4]; // Grant from SwitchControl 
+         logic    [0:4] l_output_grant [0:4]; // Grant from SwitchControl, used to control switch and FIFOs 
 
   
   `ifdef VC
   
-    // Virtual Channels.  Five input FIFOs for each switch input, Route Calculators and Switch Control.
+    // Virtual Channels.  Five input FIFOs for each switch input.  The route calculation is performed on the packet
+    // incoming to the router from the upstream router, the result of this calculation is used to decide which virtual
+    // channel the incoming packet will be stored in.  The virtual channels output a word according to which FIFOs have
+    // valid data.  This is used by the switch control for arbitration.
     // ----------------------------------------------------------------------------------------------------------------
 
            logic    [0:4] l_data_val   [0:4]; // Connects VC valid output to the route calculator
@@ -53,7 +56,7 @@ module MESH_Router
            
     generate
       for(genvar i=0; i<5; i++) begin
-        LIB_VirtualChannel #(.RADIX(5))
+        LIB_VirtualChannel #(.RADIX(5), .DEPTH(`FIFO_DEPTH))
           gen_LIB_VirtualChannel (.clk,
                                   .reset_n,
                                   .i_data(i_data[i]),           // Single input data from upstream router
@@ -61,7 +64,7 @@ module MESH_Router
                                   .o_en(o_en[i]),               // Single enable signal to the upstream router
                                   .o_data(l_data[i]),           // Single output data to switch
                                   .o_data_val(l_output_req[i]), // Packed request word to SwitchControl
-                                  .i_en(l_output_grant[i]))     // Packed grant word from SwitchControl
+                                  .i_en(l_output_grant[i]));    // Packed grant word from SwitchControl
       end
     endgenerate
     
@@ -74,20 +77,11 @@ module MESH_Router
                                     .o_output_req(l_vc_req[i]));  // To Switch Control
       end
     endgenerate
-
-    MESH_SwitchControl 
-      inst_MESH_SwitchControl (.clk,
-                               .reset_n,
-                               .i_en(i_en),                    // From the downstream router
-                               .i_output_req(l_output_req),    // From the local VCs
-                               .o_sel(l_sel),                  // To the Switch
-                               .o_output_grant(l_output_grant) // To the local VCs
-  
-  `endif
   
   `else
   
-    // No virtual Channels.  Five input FIFOs, Five Route Calculators and a Switch Control.
+    // No virtual Channels.  Five input FIFOs, with a Route Calculator attached to the packet waiting at the output of
+    // each FIFO.  The result of the route calculation is used by the switch control for arbitration.
     // ----------------------------------------------------------------------------------------------------------------
          logic          l_en           [0:4]; // Connects switch control enable output to FIFO
          logic          l_data_val     [0:4]; // Connects FIFO valid output to the route calculator    
@@ -109,6 +103,9 @@ module MESH_Router
       end
     endgenerate
     
+    // Route calculator will output 5 packed words, each word corresponds to an input, each bit corresponds to the
+    // output requested.
+    // ----------------------------------------------------------------------------------------------------------------
     generate
       for (genvar i=0; i<5; i++) begin    
         MESH_RouteCalculator #(.X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC)) 
@@ -118,14 +115,6 @@ module MESH_Router
                                     .o_output_req(l_output_req[i]));                            // To Switch Control
       end
     endgenerate
-
-    MESH_SwitchControl 
-      inst_MESH_SwitchControl (.clk,
-                               .reset_n,
-                               .i_en(i_en),                     // From the downstream router
-                               .i_output_req(l_output_req),     // From the route calculator
-                               .o_sel(l_sel),                   // To the Switch
-                               .o_output_grant(l_output_grant), // To the local FIFOs
 
     // indicate to input FIFOs, according to arbitration results, that data will be read.
     // ----------------------------------------------------------------------------------------------------------------
@@ -140,14 +129,26 @@ module MESH_Router
     end
   
   `endif
-  
-  // Switch
+ 
+  // Switch Control receives 5, 5-bit words, each word corresponds to an input, each bit corresponds to the requested
+  // output.  This is combined with the enable signal from the downstream router, then arbitrated.  The result is
+  // 5, 5-bit words each word corresponding to an output, each bit corresponding to an input (note the transposition).
+  // ------------------------------------------------------------------------------------------------------------------  
+  MESH_SwitchControl #(.RADIX(5))
+    inst_MESH_SwitchControl (.clk,
+                             .reset_n,
+                             .i_en(i_en),                      // From the downstream router
+                             .i_output_req(l_output_req),      // From the local VCs or Route Calculator
+                             .o_output_grant(l_output_grant)); // To the local VCs or FIFOs
+ 
+  // Switch.  Switch uses onehot input from switch control.
   // ------------------------------------------------------------------------------------------------------------------
   
-  MESH_Switch 
-    inst_MESH_Switch (.i_sel(l_sel),     // From the Switch Control
-                      .i_data(l_data),   // From the local FIFOs
-                      .o_data(o_data));  // To the downstream routers
+  MESH_Switch #(.N(5), .M(5))
+    inst_MESH_Switch (.i_sel(l_output_grant), // From the Switch Control
+                      .i_data(l_data),        // From the local FIFOs
+                      .o_data(o_data));       // To the downstream routers
+  
 
   // Output to downstream routers that the switch data is valid
   // ------------------------------------------------------------------------------------------------------------------                      

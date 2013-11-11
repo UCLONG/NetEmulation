@@ -8,12 +8,14 @@
 // Notes       : Untested.
 // --------------------------------------------------------------------------------------------------------------------
 
+`include "config.sv"
+
 module LIB_VirtualChannel
 
 #(parameter RADIX,
   parameter DEPTH)
   
-  input logic clk, reset_n,
+ (input logic clk, reset_n,
   
   // Upstream Bus.
   // ------------------------------------------------------------------------------------------------------------------
@@ -59,8 +61,8 @@ module LIB_VirtualChannel
     o_data = 'z;
     o_en   = 0;
     for(int i=0; i<RADIX; i++) begin
-      if(i_en[i] == (1<<i)) o_data = l_o_data[i];
-      if(i_data_val[i] == (1<<i)) o_en = l_o_en[i];
+      if(i_en == (1<<(RADIX-1)-i)) o_data = l_o_data[i];
+      if(i_data_val == (1<<(RADIX-1)-i)) o_en = l_o_en[i];
     end
   end
   

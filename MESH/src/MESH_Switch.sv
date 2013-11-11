@@ -10,65 +10,86 @@
 
 module MESH_Switch
 
- (input  logic    [2:0] i_sel  [0:4], // Input ports select an output port using a 3 bit unsigned number
-  input  packet_t       i_data [0:4], // Data in
-  
-  output packet_t       o_data [0:4]); // Data out
+#(parameter N, // Number of inputs
+  parameter M) // Number of outputs
 
+ (input  logic    [0:M-1] i_sel  [0:M-1],  // Output ports select an input port according to a 5 bit packed number
+  input  packet_t         i_data [0:N-1],  // Data in
+  
+  output packet_t         o_data [0:M-1]); // Data out
+
+/*
   // Cross Bar Switch.
   // ------------------------------------------------------------------------------------------------------------------
-  always_comb begin
-
+  always_comb begin  
+  
     // Output 0
     case (i_sel[0])
-      3'b000  : o_data[0] = i_data[0];
-      3'b001  : o_data[0] = i_data[1];
-      3'b010  : o_data[0] = i_data[2];
-      3'b011  : o_data[0] = i_data[3];
-      3'b100  : o_data[0] = i_data[4];
+      5'b00001 : o_data[0] = i_data[4];
+      5'b00010 : o_data[0] = i_data[3];
+      5'b00100 : o_data[0] = i_data[2];
+      5'b01000 : o_data[0] = i_data[1];
+      5'b10000 : o_data[0] = i_data[0];
       default : o_data[0] = 'z;
     endcase
   
     // Output 1
     case (i_sel[1])
-      3'b000  : o_data[1] = i_data[0];
-      3'b001  : o_data[1] = i_data[1];
-      3'b010  : o_data[1] = i_data[2];
-      3'b011  : o_data[1] = i_data[3];
-      3'b100  : o_data[1] = i_data[4];
+      5'b00001 : o_data[1] = i_data[4];
+      5'b00010 : o_data[1] = i_data[3];
+      5'b00100 : o_data[1] = i_data[2];
+      5'b01000 : o_data[1] = i_data[1];
+      5'b10000 : o_data[1] = i_data[0];
       default : o_data[1] = 'z;
     endcase
 
     // Output 2
     case (i_sel[2])
-      3'b000  : o_data[2] = i_data[0];
-      3'b001  : o_data[2] = i_data[1];
-      3'b010  : o_data[2] = i_data[2];
-      3'b011  : o_data[2] = i_data[3];
-      3'b100  : o_data[2] = i_data[4];
+      5'b00001 : o_data[2] = i_data[4];
+      5'b00010 : o_data[2] = i_data[3];
+      5'b00100 : o_data[2] = i_data[2];
+      5'b01000 : o_data[2] = i_data[1];
+      5'b10000 : o_data[2] = i_data[0];
       default : o_data[2] = 'z;
     endcase
 
     // Output 3
     case (i_sel[3])
-      3'b000  : o_data[3] = i_data[0];
-      3'b001  : o_data[3] = i_data[1];
-      3'b010  : o_data[3] = i_data[2];
-      3'b011  : o_data[3] = i_data[3];
-      3'b100  : o_data[3] = i_data[4];
+      5'b00001 : o_data[3] = i_data[4];
+      5'b00010 : o_data[3] = i_data[3];
+      5'b00100 : o_data[3] = i_data[2];
+      5'b01000 : o_data[3] = i_data[1];
+      5'b10000 : o_data[3] = i_data[0];
       default : o_data[3] = 'z;
     endcase
 
     // Output 4
     case (i_sel[4])
-      3'b000  : o_data[4] = i_data[0];
-      3'b001  : o_data[4] = i_data[1];
-      3'b010  : o_data[4] = i_data[2];
-      3'b011  : o_data[4] = i_data[3];
-      3'b100  : o_data[4] = i_data[4];
+      5'b00001 : o_data[4] = i_data[4];
+      5'b00010 : o_data[4] = i_data[3];
+      5'b00100 : o_data[4] = i_data[2];
+      5'b01000 : o_data[4] = i_data[1];
+      5'b10000 : o_data[4] = i_data[0];
       default : o_data[4] = 'z;
     endcase
   
   end
+
+  */
+
+
+  // Crossbar Switch.  Mux selection is onehot.  
+  // ------------------------------------------------------------------------------------------------------------------
+  always_comb begin
+    for(int i=0; i<M; i++) begin
+      o_data[i] = 'z;
+    end
+    for(int i=0; i<M; i++) begin
+      for(int j=0; j<N; j++) begin
+        if(i_sel[i] == (1<<(N-1)-j)) o_data[i] = i_data[j];
+      end
+    end
+  end
+
   
 endmodule

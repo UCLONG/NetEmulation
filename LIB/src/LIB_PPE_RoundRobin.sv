@@ -8,7 +8,7 @@
 //             : Basic Tests run using MESH_IterativeArbiter_tb.sv.  Working.
 // --------------------------------------------------------------------------------------------------------------------
 
-module LIB_PPE
+module LIB_PPE_RoundRobin
 
 #(parameter N) // Number of requesters
 
