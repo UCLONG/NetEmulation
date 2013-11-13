@@ -42,40 +42,57 @@ module MESH_Network
   
   // Router and Node Input connections
   // ------------------------------------------------------------------------------------------------------------------         
-  always_comb begin
-    for(int i=0; i<(X_NODES*Y_NODES); i++) begin
+  
+  `ifdef TORUS // 2D Mesh with wraparound Torus Links
+  
+    `ifdef FOLD
+  
+    // INSERT FOLDED TORUS NETWORK CONNECTIONS HERE.
     
-      // Router input data 
-      // Taken from upstream router output data and upstream node output data
-      l_datain[i][0] = i_data[i];                                                 // Local input
-      l_datain[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_dataout[i+X_NODES][3] : z; // North Input
-      l_datain[i][2] = (((i + 1)% X_NODES) == 0) ? z : l_dataout[i+1][4];         // East Input
-      l_datain[i][3] = (i > (X_NODES-1)) ? l_dataout[i-X_NODES][1] : z;           // South Input
-      l_datain[i][4] = ((nodeNumber % X_NODES) == 0) ? z : l_dataout[i-1][2]      // West Input
+    `else
+    
+    // INSERT TORUS NETWORK CONNECTIONS HERE.  SAME AS 2D MESH PRETTY MUCH.    
+    
+    `endif
+  
+  `else // 2D Mesh without wraparound Torus links
+  
+    always_comb begin
+      for(int i=0; i<(X_NODES*Y_NODES); i++) begin
       
-      // Router input data valid
-      // Taken from upstream router output data valid and upstream node output data valid
-      l_datain_val[i][0] = i_data_val[i];                                                 // Local input
-      l_datain_val[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_dataout_val[i+X_NODES][3] : z; // North Input
-      l_datain_val[i][2] = (((i + 1)% X_NODES) == 0) ? z : l_dataout_val[i+1][4];         // East Input
-      l_datain_val[i][3] = (i > (X_NODES-1)) ? l_dataout_val[i-X_NODES][1] : z;           // South Input
-      l_datain_val[i][4] = ((nodeNumber % X_NODES) == 0) ? z : l_dataout_val[i-1][2]      // West Input      
-  
-      // Enable from upstream router
-      // Taken from upstream router output data enable and upstream node output data enable
-      l_i_en[i][0] = i_en[i];                                                // Local input
-      l_i_en[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_o_en[i+X_NODES][3] : z; // North Input
-      l_i_en[i][2] = (((i + 1)% X_NODES) == 0) ? z : l_o_en[i+1][4];         // East Input
-      l_i_en[i][3] = (i > (X_NODES-1)) ? l_o_en[i-X_NODES][1] : z;           // South Input
-      l_i_en[i][4] = ((nodeNumber % X_NODES) == 0) ? z : l_o_en[i-1][2]      // West Input      
+        // Router input data 
+        // Taken from upstream router output data and upstream node output data
+        l_datain[i][0] = i_data[i];                                                 // Local input
+        l_datain[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_dataout[i+X_NODES][3] : z; // North Input
+        l_datain[i][2] = (((i + 1)% X_NODES) == 0) ? z : l_dataout[i+1][4];         // East Input
+        l_datain[i][3] = (i > (X_NODES-1)) ? l_dataout[i-X_NODES][1] : z;           // South Input
+        l_datain[i][4] = ((nodeNumber % X_NODES) == 0) ? z : l_dataout[i-1][2]      // West Input
+        
+        // Router input data valid
+        // Taken from upstream router output data valid and upstream node output data valid
+        l_datain_val[i][0] = i_data_val[i];                                                 // Local input
+        l_datain_val[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_dataout_val[i+X_NODES][3] : z; // North Input
+        l_datain_val[i][2] = (((i + 1)% X_NODES) == 0) ? z : l_dataout_val[i+1][4];         // East Input
+        l_datain_val[i][3] = (i > (X_NODES-1)) ? l_dataout_val[i-X_NODES][1] : z;           // South Input
+        l_datain_val[i][4] = ((nodeNumber % X_NODES) == 0) ? z : l_dataout_val[i-1][2]      // West Input      
     
-      // Node inputs
-      o_data[i]     = l_o_data[0];
-      o_data_val[i] = l_o_data_val[0];
-      o_en[i]       = l_o_en[0];
-  
+        // Enable from upstream router
+        // Taken from upstream router output data enable and upstream node output data enable
+        l_i_en[i][0] = i_en[i];                                                // Local input
+        l_i_en[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_o_en[i+X_NODES][3] : z; // North Input
+        l_i_en[i][2] = (((i + 1)% X_NODES) == 0) ? z : l_o_en[i+1][4];         // East Input
+        l_i_en[i][3] = (i > (X_NODES-1)) ? l_o_en[i-X_NODES][1] : z;           // South Input
+        l_i_en[i][4] = ((nodeNumber % X_NODES) == 0) ? z : l_o_en[i-1][2]      // West Input      
+      
+        // Node inputs
+        o_data[i]     = l_o_data[0];
+        o_data_val[i] = l_o_data_val[0];
+        o_en[i]       = l_o_en[0];
+    
+      end
     end
-  end
+  
+  `endif
   
   // Generate Routers
   // ------------------------------------------------------------------------------------------------------------------

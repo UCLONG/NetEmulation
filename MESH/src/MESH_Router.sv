@@ -16,31 +16,33 @@
 
 module MESH_Router
 
-#(parameter X_NODES,
-  parameter Y_NODES,
-  parameter X_LOC,
-  parameter Y_LOC)
+#(parameter X_NODES, // Number of cores on the X axis of the Mesh
+  parameter Y_NODES, // Number of cores on the Y axis of the Mesh 
+  parameter X_LOC,   // location on the X axis of the Mesh
+  parameter Y_LOC,   // location on the Y axis of the Mesh
+  parameter N = 5,   // Number of input ports.  Fixed for 2D Mesh Router
+  parameter M = 5)   // Number of output ports.  Fixed for 2D Mesh Router
  
  (input logic clk, reset_n,
   
   // Upstream Bus.
   // ------------------------------------------------------------------------------------------------------------------
-  input  packet_t i_data     [0:4], // Input data from upstream [core, north, east, south, west]
-  input  logic    i_data_val [0:4], // Validates data from upstream [core, north, east, south, west]
-  output logic    o_en       [0:4], // Enables data from upstream [core, north, east, south, west]
+  input  packet_t i_data     [0:N-1], // Input data from upstream [core, north, east, south, west]
+  input  logic    i_data_val [0:N-1], // Validates data from upstream [core, north, east, south, west]
+  output logic    o_en       [0:N-1], // Enables data from upstream [core, north, east, south, west]
   
   // Downstream Bus
   // ------------------------------------------------------------------------------------------------------------------
-  output packet_t o_data     [0:4],  // Outputs data to downstream [core, north, east, south, west]
-  output logic    o_data_val [0:4],  // Validates output data to downstream [core, north, east, south, west]
-  input  logic    i_en       [0:4]); // Enables output to downstream [core, north, east, south, west]
+  output packet_t o_data     [0:M-1],  // Outputs data to downstream [core, north, east, south, west]
+  output logic    o_data_val [0:M-1],  // Validates output data to downstream [core, north, east, south, west]
+  input  logic    i_en       [0:M-1]); // Enables output to downstream [core, north, east, south, west]
   
   // Local Signals common to VC and no VC instance
   // ------------------------------------------------------------------------------------------------------------------
 
-         packet_t       l_data         [0:4]; // Connects FIFO data outputs to switch
-         logic    [0:4] l_output_req   [0:4]; // Request sent to SwitchControl
-         logic    [0:4] l_output_grant [0:4]; // Grant from SwitchControl, used to control switch and FIFOs 
+         packet_t         l_data         [0:N-1]; // Connects FIFO data outputs to switch
+         logic    [0:M-1] l_output_req   [0:N-1]; // Request sent to SwitchControl
+         logic    [0:N-1] l_output_grant [0:M-1]; // Grant from SwitchControl, used to control switch and FIFOs 
 
   
   `ifdef VC
@@ -51,12 +53,12 @@ module MESH_Router
     // valid data.  This is used by the switch control for arbitration.
     // ----------------------------------------------------------------------------------------------------------------
 
-           logic    [0:4] l_data_val   [0:4]; // Connects VC valid output to the route calculator
-           logic    [0:4] l_vc_req     [0:4]; // Connects the output request of the Route Calc to a VC
+           logic    [0:M-1] l_data_val   [0:N-1]; // Connects VC valid output to the route calculator
+           logic    [0:M-1] l_vc_req     [0:N-1]; // Connects the output request of the Route Calc to a VC
            
     generate
-      for(genvar i=0; i<5; i++) begin
-        LIB_VirtualChannel #(.RADIX(5), .DEPTH(`FIFO_DEPTH))
+      for(genvar i=0; i<N; i++) begin
+        LIB_VirtualChannel #(.M(M), .DEPTH(`FIFO_DEPTH))
           gen_LIB_VirtualChannel (.clk,
                                   .reset_n,
                                   .i_data(i_data[i]),           // Single input data from upstream router
@@ -69,7 +71,7 @@ module MESH_Router
     endgenerate
     
     generate
-      for (genvar i=0; i<5; i++) begin    
+      for (genvar i=0; i<N; i++) begin    
         MESH_RouteCalculator #(.X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC)) 
           gen_MESH_RouteCalculator (.i_x_dest(i_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
                                     .i_y_dest(i_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
@@ -83,23 +85,23 @@ module MESH_Router
     // No virtual Channels.  Five input FIFOs, with a Route Calculator attached to the packet waiting at the output of
     // each FIFO.  The result of the route calculation is used by the switch control for arbitration.
     // ----------------------------------------------------------------------------------------------------------------
-         logic          l_en           [0:4]; // Connects switch control enable output to FIFO
-         logic          l_data_val     [0:4]; // Connects FIFO valid output to the route calculator    
+         logic          l_en           [0:N-1]; // Connects switch control enable output to FIFO
+         logic          l_data_val     [0:N-1]; // Connects FIFO valid output to the route calculator    
          
     generate
-      for (genvar i=0; i<5; i++) begin
-        LIB_pktFIFO #(.DEPTH(`FIFO_DEPTH))
-          gen_LIB_pktFIFO (.clk,
-                           .reset_n,
-                           .i_data(i_data[i]),         // From the upstream routers
-                           .i_data_val(i_data_val[i]), // From the upstream routers
-                           .i_en(l_en[i]),             // From the SwitchControl
-                           .o_data(l_data[i]),         // To the Switch
-                           .o_data_val(l_data_val[i]), // To the route calculator
-                           .o_en(o_en[i]),             // To the upstream routers
-                           .o_full(),                  // Not connected, o_en used for flow control
-                           .o_empty(),                 // Not connected, not required for simple flow control
-                           .o_near_empty());           // Not connected, not required for simple flow control
+      for (genvar i=0; i<N; i++) begin
+        LIB_FIFO_packet_t #(.DEPTH(`FIFO_DEPTH))
+          gen_LIB_FIFO_packet_t (.clk,
+                                 .reset_n,
+                                 .i_data(i_data[i]),         // From the upstream routers
+                                 .i_data_val(i_data_val[i]), // From the upstream routers
+                                 .i_en(l_en[i]),             // From the SwitchControl
+                                 .o_data(l_data[i]),         // To the Switch
+                                 .o_data_val(l_data_val[i]), // To the route calculator
+                                 .o_en(o_en[i]),             // To the upstream routers
+                                 .o_full(),                  // Not connected, o_en used for flow control
+                                 .o_empty(),                 // Not connected, not required for simple flow control
+                                 .o_near_empty());           // Not connected, not required for simple flow control
       end
     endgenerate
     
@@ -107,7 +109,7 @@ module MESH_Router
     // output requested.
     // ----------------------------------------------------------------------------------------------------------------
     generate
-      for (genvar i=0; i<5; i++) begin    
+      for (genvar i=0; i<N; i++) begin    
         MESH_RouteCalculator #(.X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC)) 
           gen_MESH_RouteCalculator (.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
                                     .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
@@ -115,18 +117,6 @@ module MESH_Router
                                     .o_output_req(l_output_req[i]));                            // To Switch Control
       end
     endgenerate
-
-    // indicate to input FIFOs, according to arbitration results, that data will be read.
-    // ----------------------------------------------------------------------------------------------------------------
-    always_comb begin
-      for (int i=0; i<5; i++) begin
-        l_en[i]   = |{l_output_grant[0][i], 
-                      l_output_grant[1][i], 
-                      l_output_grant[2][i], 
-                      l_output_grant[3][i], 
-                      l_output_grant[4][i]};
-      end
-    end
   
   `endif
  
@@ -134,7 +124,7 @@ module MESH_Router
   // output.  This is combined with the enable signal from the downstream router, then arbitrated.  The result is
   // 5, 5-bit words each word corresponding to an output, each bit corresponding to an input (note the transposition).
   // ------------------------------------------------------------------------------------------------------------------  
-  MESH_SwitchControl #(.RADIX(5))
+  MESH_SwitchControl #(.N(N), .M(M))
     inst_MESH_SwitchControl (.clk,
                              .reset_n,
                              .i_en(i_en),                      // From the downstream router
@@ -144,7 +134,7 @@ module MESH_Router
   // Switch.  Switch uses onehot input from switch control.
   // ------------------------------------------------------------------------------------------------------------------
   
-  MESH_Switch #(.N(5), .M(5))
+  MESH_Switch #(.N(N), .M(M))
     inst_MESH_Switch (.i_sel(l_output_grant), // From the Switch Control
                       .i_data(l_data),        // From the local FIFOs
                       .o_data(o_data));       // To the downstream routers
@@ -153,9 +143,35 @@ module MESH_Router
   // Output to downstream routers that the switch data is valid
   // ------------------------------------------------------------------------------------------------------------------                      
   always_comb begin
-    for (int i=0; i<5; i++) begin  
+    for (int i=0; i<M; i++) begin  
       o_data_val[i]  = |l_output_grant[i];
     end
   end
+  
+  // indicate to input FIFOs, according to arbitration results, that data will be read.
+  // ----------------------------------------------------------------------------------------------------------------
+  
+  always_comb begin
+    for(int i=0; i<N; i++) begin
+      for(int j=0; j<M; j++) begin
+        l_en[i]   = |l_output_grant[j][i], 
+      end
+    end
+  end    
+  
+  /*
+  
+  DELETE ONCE ABOVE CODE VERSION IS PROVED
+  
+  always_comb begin
+    for (int i=0; i<5; i++) begin
+      l_en[i]   = |{l_output_grant[0][i], 
+                    l_output_grant[1][i], 
+                    l_output_grant[2][i], 
+                    l_output_grant[3][i], 
+                    l_output_grant[4][i]};
+    end
+  end
+  */
 
 endmodule
