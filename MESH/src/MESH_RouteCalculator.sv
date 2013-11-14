@@ -8,6 +8,7 @@
 //             : Untested
 // --------------------------------------------------------------------------------------------------------------------
 
+`include "MESH_config.sv"
 `include "config.sv"
 
 module MESH_RouteCalculator
@@ -68,6 +69,8 @@ module MESH_RouteCalculator
         end      
 
       `endif
+    
+    `endif
     
   `else
   

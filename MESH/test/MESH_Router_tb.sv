@@ -8,7 +8,6 @@
 //             : number encoded as logic.  If `PORTS is a function of 2^n this will not cause problems as the logic
 //             : can simply be split in two, each half representing either the X or Y direction.  This will not work
 //             : otherwise.
-//             : Untested.
 // --------------------------------------------------------------------------------------------------------------------
 
 `include "config.sv"
@@ -28,6 +27,8 @@ module MESH_Router_tb;
   logic    i_en       [0:4];  // Enables output to downstream [core, north, east, south, west]
   packet_t o_data     [0:4];  // Outputs data to downstream [core, north, east, south, west]
   logic    o_data_val [0:4];  // Validates output data to downstream [core, north, east, south, west]
+  
+  logic   [2:0] l_data_count [0:4];
   
   // DUT
   // ------------------------------------------------------------------------------------------------------------------       
@@ -49,22 +50,24 @@ module MESH_Router_tb;
     reset_n = 1;
   end
 
-  // Random Input Flag Generation.
+  // Random Input Flag Generation.  Router will receive 25 packets addressed for different output ports.
   // ------------------------------------------------------------------------------------------------------------------  
   always_ff@(posedge clk) begin
     if(~reset_n) begin
       for(int i=0; i<5; i++) begin
+        l_data_count[i]  <= 0;
         i_data[i].data   <= 1;
-        i_data[i].source <= i; // For ease of debug, this does not change.
+        i_data[i].source <= i;
         i_data[i].dest   <= 0;
         i_data[i].valid  <= 0;
         i_en[i]          <= 0;
       end
     end else begin
       for(int i=0; i<5; i++) begin
-        i_data[i].data  <= i_data[i].valid ? i_data[i].data + 1 : i_data[i].data; // Gives valid packet numbers
+        l_data_count[i] <= i_data[i].valid ? l_data_count[i] + 1 : l_data_count[i]; // Counts input packets
+        i_data[i].data  <= i_data[i].valid ? i_data[i].data  + 1 : i_data[i].data;  // Gives valid packet numbers
         i_data[i].dest  <= $urandom_range(16); // Equal chance to be any node destination
-        i_data[i].valid <= $urandom_range(1);  // 50% of the time input data will be valid.
+        i_data[i].valid <= (l_data_count[i] < 5) ? $urandom_range(1) : 0;  // Only 5 input data packets will be valid.
         i_en[i]         <= $urandom_range(1);  // Downstream write permission 50% of the time.     
       end
     end

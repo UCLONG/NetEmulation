@@ -11,7 +11,7 @@
 
 `include "config.sv"
 
-module MESH_Switch_tb;
+module LIB_Switch_OneHot_packet_t_tb;
 
   logic clk, reset_n;
   
@@ -24,10 +24,10 @@ module MESH_Switch_tb;
   
   // DUT
   // ------------------------------------------------------------------------------------------------------------------       
-  MESH_Switch #(.RADIX(5))
-    inst_MESH_Switch (.i_sel(l_output_grant), // From the Switch Control
-                      .i_data(i_data),        // From the local FIFOs
-                      .o_data(o_data));       // To the downstream routers
+  LIB_Switch_OneHot_packet_t #(.RADIX(5))
+    inst_LIB_Switch_OneHot_packet_t (.i_sel(l_output_grant), // From the Switch Control
+                                     .i_data(i_data),        // From the local FIFOs
+                                     .o_data(o_data));       // To the downstream routers
   
   // Clock Generation
   // ------------------------------------------------------------------------------------------------------------------

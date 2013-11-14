@@ -4,7 +4,7 @@
 // Module name : LIB_VirtualChannel
 // Description : Instantiates an independent FIFO for each output port.  Stores input data to single FIFO according to  
 //             : a onehot input valid.  Multiplexes the output data to a single port according to a onehot enable input
-// Uses        : LIB_PKTFIFO.sv,
+// Uses        : LIB_FIFO_packet_t.sv,
 // Notes       : Untested.
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -31,7 +31,7 @@ module LIB_VirtualChannel
   
   // Local Signals
   // ------------------------------------------------------------------------------------------------------------------
-         logic    [0:M-1] l_o_data;
+         packet_t [0:M-1] l_o_data;
          logic    [0:M-1] l_o_en;
   
   // Virtual Channnels

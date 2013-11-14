@@ -12,7 +12,7 @@
 
 `include "config.sv"
 
-module LIB_pktFIFO
+module LIB_FIFO_packet_t
 
 #(parameter DEPTH = 4)
 

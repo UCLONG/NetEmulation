@@ -8,7 +8,6 @@
 //             : number encoded as logic.  If `PORTS is a function of 2^n this will not cause problems as the logic
 //             : can simply be split in two, each half representing either the X or Y direction.  This will not work
 //             : otherwise.
-//             : Untested.
 // --------------------------------------------------------------------------------------------------------------------
 
 `include "MESH_Config.sv"
@@ -42,9 +41,9 @@ module MESH_Router
 
          packet_t         l_data         [0:N-1]; // Connects FIFO data outputs to switch
          logic    [0:M-1] l_output_req   [0:N-1]; // Request sent to SwitchControl
-         logic    [0:N-1] l_output_grant [0:M-1]; // Grant from SwitchControl, used to control switch and FIFOs 
+         logic    [0:N-1] l_output_grant [0:M-1]; // Grant from SwitchControl, used to control switch and FIFOs
 
-  
+
   `ifdef VC
   
     // Virtual Channels.  Five input FIFOs for each switch input.  The route calculation is performed on the packet
@@ -53,8 +52,8 @@ module MESH_Router
     // valid data.  This is used by the switch control for arbitration.
     // ----------------------------------------------------------------------------------------------------------------
 
-           logic    [0:M-1] l_data_val   [0:N-1]; // Connects VC valid output to the route calculator
-           logic    [0:M-1] l_vc_req     [0:N-1]; // Connects the output request of the Route Calc to a VC
+         logic    [0:M-1] l_vc_req     [0:N-1]; // Connects the output request of the Route Calc to a VC
+         logic    [0:M-1] l_en         [0:N-1]; // Connects switch control enable output to VCs
            
     generate
       for(genvar i=0; i<N; i++) begin
@@ -66,7 +65,7 @@ module MESH_Router
                                   .o_en(o_en[i]),               // Single enable signal to the upstream router
                                   .o_data(l_data[i]),           // Single output data to switch
                                   .o_data_val(l_output_req[i]), // Packed request word to SwitchControl
-                                  .i_en(l_output_grant[i]));    // Packed grant word from SwitchControl
+                                  .i_en(l_en[i]));              // Packed grant word from SwitchControl
       end
     endgenerate
     
@@ -79,15 +78,25 @@ module MESH_Router
                                     .o_output_req(l_vc_req[i]));  // To Switch Control
       end
     endgenerate
-  
+    
+    // transposition of the output arbitration grant for indicating an enable to the VCs
+    always_comb begin
+      for(int i=0; i<N; i++) begin
+        for(int j=0; j<M; j++) begin
+          l_en[i][j] = l_output_grant[j][i];
+        end
+      end
+    end  
+    
   `else
   
     // No virtual Channels.  Five input FIFOs, with a Route Calculator attached to the packet waiting at the output of
     // each FIFO.  The result of the route calculation is used by the switch control for arbitration.
     // ----------------------------------------------------------------------------------------------------------------
-         logic          l_en           [0:N-1]; // Connects switch control enable output to FIFO
-         logic          l_data_val     [0:N-1]; // Connects FIFO valid output to the route calculator    
-         
+
+         logic            l_data_val     [0:N-1]; // Connects FIFO valid output to the route calculator    
+         logic            l_en           [0:N-1]; // Connects switch control enable output to FIFO
+
     generate
       for (genvar i=0; i<N; i++) begin
         LIB_FIFO_packet_t #(.DEPTH(`FIFO_DEPTH))
@@ -117,7 +126,32 @@ module MESH_Router
                                     .o_output_req(l_output_req[i]));                            // To Switch Control
       end
     endgenerate
-  
+    
+    // indicate to input FIFOs, according to arbitration results, that data will be read.
+    // ----------------------------------------------------------------------------------------------------------------
+
+    /*
+    always_comb begin
+      for(int i=0; i<N; i++) begin
+        for(int j=0; j<M; j++) begin
+          l_en[i]   = |l_output_grant[j][i]; 
+        end
+      end
+    end    
+    */
+    
+    // DELETE BELOW BLOCK ONCE ABOVE CODE VERSION IS FIXED
+    
+    always_comb begin
+      for (int i=0; i<N; i++) begin
+        l_en[i]   = |{l_output_grant[0][i], 
+                      l_output_grant[1][i], 
+                      l_output_grant[2][i], 
+                      l_output_grant[3][i], 
+                      l_output_grant[4][i]};
+      end
+    end
+
   `endif
  
   // Switch Control receives 5, 5-bit words, each word corresponds to an input, each bit corresponds to the requested
@@ -134,10 +168,10 @@ module MESH_Router
   // Switch.  Switch uses onehot input from switch control.
   // ------------------------------------------------------------------------------------------------------------------
   
-  MESH_Switch #(.N(N), .M(M))
-    inst_MESH_Switch (.i_sel(l_output_grant), // From the Switch Control
-                      .i_data(l_data),        // From the local FIFOs
-                      .o_data(o_data));       // To the downstream routers
+  LIB_Switch_OneHot_packet_t #(.N(N), .M(M))
+    inst_LIB_Switch_OneHot_packet_t (.i_sel(l_output_grant), // From the Switch Control
+                                     .i_data(l_data),        // From the local FIFOs
+                                     .o_data(o_data));       // To the downstream routers
   
 
   // Output to downstream routers that the switch data is valid
@@ -148,30 +182,6 @@ module MESH_Router
     end
   end
   
-  // indicate to input FIFOs, according to arbitration results, that data will be read.
-  // ----------------------------------------------------------------------------------------------------------------
   
-  always_comb begin
-    for(int i=0; i<N; i++) begin
-      for(int j=0; j<M; j++) begin
-        l_en[i]   = |l_output_grant[j][i], 
-      end
-    end
-  end    
-  
-  /*
-  
-  DELETE ONCE ABOVE CODE VERSION IS PROVED
-  
-  always_comb begin
-    for (int i=0; i<5; i++) begin
-      l_en[i]   = |{l_output_grant[0][i], 
-                    l_output_grant[1][i], 
-                    l_output_grant[2][i], 
-                    l_output_grant[3][i], 
-                    l_output_grant[4][i]};
-    end
-  end
-  */
 
 endmodule

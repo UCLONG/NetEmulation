@@ -1,15 +1,14 @@
 // --------------------------------------------------------------------------------------------------------------------
 // IP Block    : LIB
 // Sub Block   : Allocator
-// Function    : InputFirst
-// Module name : LIB_Allocator_InputFirst
+// Function    : InputFirst_iSLIP
+// Module name : LIB_Allocator_InputFirst_iSLIP
 // Description : NxM Input first Separable Allocator.  Allocates N requesters (inputs) to M resources (outputs) using
-//             : round robin Programmable Priority Encoders.
+//             : iSLIP arbitration.
 // Uses        : LIB_PPE.sv, LIB_PPE_RoundRobin.sv
-// Notes       : Untested
 // --------------------------------------------------------------------------------------------------------------------
 
-module LIB_Allocator_InputFirst
+module LIB_Allocator_InputFirst_iSLIP
 
 #(parameter N, // Number of requesters (inputs)
   parameter M) // Number of resources  (outputs)
@@ -62,8 +61,10 @@ module LIB_Allocator_InputFirst
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(posedge clk) begin
     if(~reset_n) begin
-      l_input_priority[0] <= 1'b1;
-      l_input_priority[1:N-1] <= 0;
+      for(int i=0; i<N; i++) begin
+        l_input_priority[i][0] <= 1'b1;
+        l_input_priority[i][1:M-1] <= 0;
+      end
     end else begin
       for(int i=0; i<N; i++) begin
         for(int j=0; j<M; j++) begin

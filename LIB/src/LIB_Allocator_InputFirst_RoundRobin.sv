@@ -6,10 +6,9 @@
 // Description : NxM Input first Separable Allocator.  Allocates N requesters (inputs) to M resources (outputs) using
 //             : round robin Programmable Priority Encoders.
 // Uses        : LIB_PPE_RoundRobin.sv
-// Notes       : Untested
 // --------------------------------------------------------------------------------------------------------------------
 
-module LIB_Allocator_InputFirst
+module LIB_Allocator_InputFirst_RoundRobin
 
 #(parameter N, // Number of requesters (inputs)
   parameter M) // Number of resources  (outputs)
@@ -53,7 +52,7 @@ module LIB_Allocator_InputFirst
         gen_LIB_PPE_RoundRobin (.clk,
                                 .reset_n,
                                 .i_request(l_intermediate[i]),
-                                .o_grant(l_output_grant[i]));
+                                .o_grant(o_grant[i]));
     end
   endgenerate
   
