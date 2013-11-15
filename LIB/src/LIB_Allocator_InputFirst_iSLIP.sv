@@ -16,13 +16,13 @@ module LIB_Allocator_InputFirst_iSLIP
  (input  logic clk,
   input  logic reset_n,
   
-  input  logic [0:M-1] i_request [0:N-1],  // N, M-bit request vectors.
+  input  logic [0:N-1][0:M-1] i_request, // N, M-bit request vectors.
   
-  output logic [0:N-1] o_grant   [0:M-1]); // M, N-bit Grant vectors
+  output logic [0:M-1][0:N-1] o_grant);  // M, N-bit Grant vectors
   
-         logic [0:M-1] l_input_priority [0:N-1]; // Input priority vector - rotated only when output grant served
-         logic [0:M-1] l_input_grant    [0:N-1]; // Result from input arbitration
-         logic [0:N-1] l_intermediate   [0:M-1]; // Transpose of input grant result for output arbitration
+         logic [0:N-1][0:M-1] l_input_priority; // Input priority vector - rotated only when output grant served
+         logic [0:N-1][0:M-1] l_input_grant;    // Result from input arbitration
+         logic [0:M-1][0:N-1] l_intermediate;   // Transpose of input grant result for output arbitration
          
   // Input Arbitration
   // ------------------------------------------------------------------------------------------------------------------
@@ -37,6 +37,7 @@ module LIB_Allocator_InputFirst_iSLIP
   
   // transposition of the input arbitration grant for input into the Output arbitration stage.
   always_comb begin
+    l_intermediate = '0;
     for(int i=0; i<M; i++) begin
       for(int j=0; j<N; j++) begin
         l_intermediate[i][j] = l_input_grant[j][i];

@@ -1,7 +1,7 @@
 // --------------------------------------------------------------------------------------------------------------------
-// IP Block    : MESH
+// IP Block    : ENoC
 // Function    : RouteCalculator
-// Module name : MESH_RouteCalculator
+// Module name : ENoC_RouteCalculator
 // Description : Calculates which output port is required by comparing the current location of the packet with its
 //             : destination.  Currently, only oblivious Dimension ordered routing is used.
 // Notes       : Danny Ly has prepared an adaptive routing mechanism that will be added in the next version.
@@ -49,6 +49,7 @@ module MESH_RouteCalculator
         // (Oblivious) Dimension Ordered Routing for 2D-Mesh
         // ----------------------------------------------------------------------------------------------------------------
         always_comb begin
+          o_output_req = '0;
           if(i_val) begin
             if(i_x_dest == X_LOC) begin
               if(i_y_dest == Y_LOC) begin

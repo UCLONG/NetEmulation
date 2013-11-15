@@ -1,9 +1,9 @@
 // --------------------------------------------------------------------------------------------------------------------
-// IP Block    : MESH
+// IP Block    : ENoC
 // Function    : Network Wrap
 // Module name : network
 // Description : Instantiates a MESH_Network suitable for connecting to NetEmulation
-// Uses        : MESH_Network.sv
+// Uses        : ENoC_Network.sv
 // Notes       : Need better way of fitting X_NODES and Y_NODES, currently on works for perfect square.
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -25,8 +25,8 @@ module network
     end
   end
   
-  MESH_Network #(.X_NODES($sqrt(`PORTS)), Y_NODES($sqrt(`PORTS)))
-    inst_MESH_Network (.clk,
+  ENoC_Network #(.X_NODES($sqrt(`PORTS)), Y_NODES($sqrt(`PORTS)))
+    inst_ENoC_Network (.clk,
                        .reset_n(~rst),
                        .i_data(pkt_in),
                        .i_data_val(l_i_data_val),

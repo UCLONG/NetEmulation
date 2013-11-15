@@ -18,17 +18,17 @@ module MESH_Router_tb;
   
   // Upstream Bus.
   // ------------------------------------------------------------------------------------------------------------------
-  packet_t i_data     [0:4]; // Input data from upstream [core, north, east, south, west]
-  logic    i_data_val [0:4]; // Validates data from upstream [core, north, east, south, west]
-  logic    o_en       [0:4]; // Enables data from upstream [core, north, east, south, west]
+  packet_t [0:4] i_data;     // Input data from upstream [core, north, east, south, west]
+  logic    [0:4] i_data_val; // Validates data from upstream [core, north, east, south, west]
+  logic    [0:4] o_en;       // Enables data from upstream [core, north, east, south, west]
   
   // Downstream Bus
   // ------------------------------------------------------------------------------------------------------------------
-  logic    i_en       [0:4];  // Enables output to downstream [core, north, east, south, west]
-  packet_t o_data     [0:4];  // Outputs data to downstream [core, north, east, south, west]
-  logic    o_data_val [0:4];  // Validates output data to downstream [core, north, east, south, west]
+  logic    [0:4] i_en;       // Enables output to downstream [core, north, east, south, west]
+  packet_t [0:4] o_data;     // Outputs data to downstream [core, north, east, south, west]
+  logic    [0:4] o_data_val; // Validates output data to downstream [core, north, east, south, west]
   
-  logic   [2:0] l_data_count [0:4];
+  logic    [0:4][2:0] l_data_count;
   
   // DUT
   // ------------------------------------------------------------------------------------------------------------------       

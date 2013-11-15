@@ -1,14 +1,14 @@
 // --------------------------------------------------------------------------------------------------------------------
-// IP Block    : MESH
+// IP Block    : ENoC
 // Function    : Network
-// Module name : MESH_Network
-// Description : Instantiates a 2D Mesh Network of routers
-// Uses        : MESH_Router.sv
+// Module name : ENoC_Network
+// Description : Instantiates an Electronic Network of routers
+// Uses        : ENoC_Router.sv
 // --------------------------------------------------------------------------------------------------------------------
 
 `include "config.sv"
 
-module MESH_Network
+module ENoC_Network
 
 #(parameter X_NODES,
   parameter Y_NODES,
@@ -18,28 +18,28 @@ module MESH_Network
   
   // Router Read.  Valid/Enable protocol.
   // ------------------------------------------------------------------------------------------------------------------
-  input  packet_t i_data     [0:(X_NODES*Y_NODES)-1],   // Input data from the nodes to the network
-  input  packet_t i_data_val [0:(X_NODES*Y_NODES)-1],   // Validates the input data from the nodes.
-  output logic    o_en       [0:(X_NODES*Y_NODES)-1],   // Enables the node to send data to the network.
+  input  packet_t [0:(X_NODES*Y_NODES)-1] i_data,     // Input data from the nodes to the network
+  input  packet_t [0:(X_NODES*Y_NODES)-1] i_data_val, // Validates the input data from the nodes.
+  output logic    [0:(X_NODES*Y_NODES)-1] o_en,       // Enables the node to send data to the network.
   
   // Router Write.  Valid/Enable protocol.
   // ------------------------------------------------------------------------------------------------------------------
-  output packet_t o_data     [0:(X_NODES*Y_NODES)-1],   // Output data from the network to the nodes
-  ouptut logic    o_data_val [0:(X_NODES*Y_NODES)-1],   // Validates the output data to the nodes
-  input  logic    i_en       [0:(X_NODES*Y_NODES)-1]);  // Enables the network to send data to the node
+  output packet_t [0:(X_NODES*Y_NODES)-1] o_data,     // Output data from the network to the nodes
+  ouptut logic    [0:(X_NODES*Y_NODES)-1] o_data_val, // Validates the output data to the nodes
+  input  logic    [0:(X_NODES*Y_NODES)-1] i_en);      // Enables the network to send data to the node
   
   // Local Logic, connections between routers.
   // ------------------------------------------------------------------------------------------------------------------
          
          // Router Read
-         packet_t l_datain     [0:(X_NODES*Y_NODES)-1][0:4];
-         logic    l_datain_val [0:(X_NODES*Y_NODES)-1][0:4];
-         logic    l_o_en       [0:(X_NODES*Y_NODES)-1][0:4];
+         packet_t [0:(X_NODES*Y_NODES)-1][0:4] l_datain;
+         logic    [0:(X_NODES*Y_NODES)-1][0:4] l_datain_val;
+         logic    [0:(X_NODES*Y_NODES)-1][0:4] l_o_en;
          
          // Router Write
-         packet_t l_dataout     [0:(X_NODES*Y_NODES)-1][0:4];
-         logic    l_dataout_val [0:(X_NODES*Y_NODES)-1][0:4];
-         logic    l_i_en        [0:(X_NODES*Y_NODES)-1][0:4];
+         packet_t [0:(X_NODES*Y_NODES)-1][0:4] l_dataout;
+         logic    [0:(X_NODES*Y_NODES)-1][0:4] l_dataout_val;
+         logic    [0:(X_NODES*Y_NODES)-1][0:4] l_i_en;
   
   // Router and Node Input connections
   // ------------------------------------------------------------------------------------------------------------------         
@@ -150,8 +150,8 @@ module MESH_Network
   generate
   for (genvar y=0; y<Y_NODES; i++) begin
     for(genvar x=0; x<X_NODES; x++) begin
-      MESH_ROUTER #(.X_NODES, .Y_NODES, .X_LOC(x), .Y_LOC(y))
-        gen_MESH_ROUTER (.clk,
+      ENoC_Router #(.X_NODES, .Y_NODES, .X_LOC(x), .Y_LOC(y))
+        gen_ENoC_Router (.clk,
                          .reset_n,
                          .i_data(l_datain[i]),         // From the upstream routers and nodes
                          .i_data_val(l_datain_val[i]), // From the upstream routers and nodes

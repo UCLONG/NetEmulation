@@ -1,14 +1,14 @@
 // --------------------------------------------------------------------------------------------------------------------
-// IP Block    : MESH
+// IP Block    : ENoC
 // Function    : SwitchControl
-// Module name : MESH_SwitchControl
+// Module name : ENoC_SwitchControl
 // Description : Simple controller for a CrossBar switch.  Flow control is valid/enable.
 // Uses        : LIB_PPE_RoundRobin.sv, LIB_Allocator_InputFirst_RoundRobin.sv, LIB_Allocator_InputFirst_iSLIP.sv 
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "MESH_Config.sv"
+`include "ENoC_Config.sv"
 
-module MESH_SwitchControl
+module ENoC_SwitchControl
 
 #(parameter N, // Number of inputs
   parameter M) // Number of outputs
@@ -16,12 +16,12 @@ module MESH_SwitchControl
  (input  logic clk,
   input  logic reset_n,
   
-  input  logic         i_en           [0:M-1],   // hold ports signal from downstream router
-  input  logic [0:M-1] i_output_req   [0:N-1],   // each local input unit requests [c,n,e,s,w] output port
+  input  logic        [0:M-1] i_en,            // hold ports signal from downstream router
+  input  logic [0:N-1][0:M-1] i_output_req,    // each local input unit requests [c,n,e,s,w] output port
   
-  output logic [0:N-1] o_output_grant [0:M-1]);  // Each output grants the [c,n,e,s,w] input 
+  output logic [0:M-1][0:N-1] o_output_grant); // Each output grants the [c,n,e,s,w] input 
   
-         logic [0:N-1] l_req_matrix   [0:M-1];   // Packed requests for the [c,n,e,s,w] output
+         logic [0:M-1][0:N-1] l_req_matrix;    // Packed requests for the [c,n,e,s,w] output
   
   `ifdef VC
 
@@ -31,6 +31,7 @@ module MESH_SwitchControl
     // port it requires is unavailable.  This is then fed into either a round robin allocator or an iSLIP allocator.
     // ----------------------------------------------------------------------------------------------------------------
     always_comb begin
+      l_req_matrix = '0;
       for (int i=0; i<N; i++) begin
         for (int j=0; j<M; j++) begin
           l_req_matrix[i][j] = i_output_req[i][j] && i_en[j];
@@ -65,6 +66,7 @@ module MESH_SwitchControl
     // corresponding output enable is low.  This is then fed into M round robin arbiters.
     // ----------------------------------------------------------------------------------------------------------------
     always_comb begin
+      l_req_matrix = '0;
       for (int i=0; i<M; i++) begin
         for (int j=0; j<N; j++) begin
           l_req_matrix[i][j] = i_output_req[j][i] && i_en[i];
