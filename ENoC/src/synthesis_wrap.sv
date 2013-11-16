@@ -2,7 +2,7 @@
 // IP Block    : ENoC
 // Function    : synthesis_wrap
 // Module name : synthesis_wrap
-// Description : Instantiates a MESH_Network keeping top level ports to 0.
+// Description : Instantiates a MESH_Network keeping top level ports to a minimum for synthesis.
 // Uses        : synthesis_wrap.sv
 // --------------------------------------------------------------------------------------------------------------------
 

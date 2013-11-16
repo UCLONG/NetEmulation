@@ -16,9 +16,9 @@ module LIB_Allocator_InputFirst_RoundRobin
  (input  logic clk,
   input  logic reset_n,
   
-  input  logic [0:N-1][0:M-1] i_request,  // N, M-bit request vectors.
+  input  logic [0:N-1][0:M-1] i_request, // N, M-bit request vectors.
   
-  output logic [0:M-1][0:N-1] o_grant); // M, N-bit Grant vectors
+  output logic [0:M-1][0:N-1] o_grant);  // M, N-bit Grant vectors
   
          logic [0:N-1][0:M-1] l_input_grant; // Result from input arbitration
          logic [0:M-1][0:N-1] l_intermediate; // Transpose of input grant result for output arbitration

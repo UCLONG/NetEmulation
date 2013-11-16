@@ -6,26 +6,14 @@
 // Uses        : ENoC_Router.sv
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "ENoC_Config.sv"
-
-function int log2(input int n);
-  begin
-    log2 = 0;     // log2 is zero to start
-    n--;          // decrement 'n'
-    while (n > 0) // While n is greater than 0
-      begin
-        log2++;   // Increment 'log2'
-        n >>= 1;  // Bitwise shift 'n' to the right by one position
-      end
-  end
-endfunction
+`include "ENoC_Config.sv"    // Defines parameters and topology
+`include "ENoC_Functions.sv" // Defines log2 function.  Should only be included in one file per scope.
 
 module ENoC_Network
 
-#(parameter X_NODES = 3,
-  parameter Y_NODES = 3,
-  parameter FIFO_DEPTH = 4,
-  parameter LINK_DELAY = 0)
+#(parameter X_NODES           = `X_NODES,           // Number of node columns
+  parameter Y_NODES           = `Y_NODES,           // Number of node rows
+  parameter INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH) // Depth of input buffering
 
  (input  logic    clk, reset_n,
   
@@ -111,7 +99,7 @@ module ENoC_Network
   `else 
   
     // 2D Mesh without wraparound Torus links
-    // ------------------------------------------------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------------------------------------
     always_comb begin
       for(int i=0; i<(X_NODES*Y_NODES); i++) begin
       
@@ -153,9 +141,14 @@ module ENoC_Network
   // ------------------------------------------------------------------------------------------------------------------
   genvar y, x;
   generate
-  for (y=0; y<Y_NODES; y++) begin : Y_ROUTERS
-    for(x=0; x<X_NODES; x++) begin : X_ROUTERS
-      ENoC_Router #(.X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(x), .Y_LOC(y), .FIFO_DEPTH(FIFO_DEPTH), .N(5), .M(5))
+  for (y=0; y<Y_NODES; y++) begin : GENERATE_Y_ROUTERS
+    for(x=0; x<X_NODES; x++) begin : GENERATE_X_ROUTERS
+      ENoC_Router #(.X_NODES(X_NODES),
+		              .Y_NODES(Y_NODES),
+						  .X_LOC(x),.Y_LOC(y),
+						  .INPUT_QUEUE_DEPTH(INPUT_QUEUE_DEPTH),
+						  .N(5),
+						  .M(5))
         gen_ENoC_Router (.clk,
                          .reset_n,
                          .i_data(l_datain[(y*X_NODES)+x]),          // From the upstream routers and nodes
