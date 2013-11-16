@@ -1,16 +1,14 @@
 // --------------------------------------------------------------------------------------------------------------------
 // IP Block    : LIB
-// Function    : VirtualChannel
-// Module name : LIB_VirtualChannel
-// Description : Instantiates an independent FIFO for each output port.  Stores input data to single FIFO according to  
-//             : a onehot input valid.  Multiplexes the output data to a single port according to a onehot enable input
+// Function    : VOQ
+// Module name : LIB_VOQ
+// Description : Virtual Output Queue.  Instantiates an independent FIFO for each output port.  Stores input data to   
+//             : single FIFO according to a onehot input valid.  Multiplexes the output data to a single port according 
+//             : to a onehot enable input
 // Uses        : LIB_FIFO_packet_t.sv,
-// Notes       : Untested.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "config.sv"
-
-module LIB_VirtualChannel
+module LIB_VOQ
 
 #(parameter M,     // Number of outputs requiring virtual channel
   parameter DEPTH) // Depth of the virtual channels
@@ -36,8 +34,9 @@ module LIB_VirtualChannel
   
   // Virtual Channnels
   // ------------------------------------------------------------------------------------------------------------------
+  genvar i;
   generate
-    for (genvar i=0; i<M; i++) begin
+    for (i=0; i<M; i++) begin : VIRTUAL_CHANNELS
       LIB_FIFO_packet_t #(.DEPTH(DEPTH))
         gen_LIB_FIFO_packet_t (.clk,
                                .reset_n,

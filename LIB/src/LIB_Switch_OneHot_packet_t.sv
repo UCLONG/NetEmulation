@@ -6,8 +6,6 @@
 // Description : NxM packet_t CrossBar Switch. 
 // -------------------------------------------------------------------------------------------------------------------- 
 
-`include "config.sv"
-
 module LIB_Switch_OneHot_packet_t
 
 #(parameter N, // Number of inputs

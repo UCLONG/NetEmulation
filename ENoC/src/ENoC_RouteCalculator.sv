@@ -8,13 +8,12 @@
 //             : Untested
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "MESH_config.sv"
-`include "config.sv"
+`include "ENoC_Config.sv"
 
-module MESH_RouteCalculator
+module ENoC_RouteCalculator
 
-#(parameter X_NODES = 4,
-  parameter Y_NODES = 4,
+#(parameter X_NODES,
+  parameter Y_NODES,
   parameter X_LOC,
   parameter Y_LOC)
   
@@ -24,58 +23,75 @@ module MESH_RouteCalculator
   
   output logic               [0:4] o_output_req); // One-hot request for the [c,n,e,s,w] output port
   
-  `ifdef MESH
+
   
-    `ifdef TORUS
-    
-      `ifdef ADAPTIVE
-    
-        // DEFINE ADAPTIVE TORUS ROUTING ALGORITHMS HERE
-        
-      `else
+  `ifdef TORUS
+  
+    `ifdef ADAPTIVE
+  
+      // DEFINE ADAPTIVE TORUS ROUTING ALGORITHMS HERE
       
-        // DEFINE OBLIVIOUS TORUS ROUTING ALGORITHM HERE
-        
-      `endif
-    
     `else
     
-      `ifdef ADAPTIVE
-      
-        // DEFINE ADAPTIVE MESH ROUTING ALGORITHM HERE
-      
-      `else
-
-        // (Oblivious) Dimension Ordered Routing for 2D-Mesh
-        // ----------------------------------------------------------------------------------------------------------------
-        always_comb begin
-          o_output_req = '0;
-          if(i_val) begin
-            if(i_x_dest == X_LOC) begin
-              if(i_y_dest == Y_LOC) begin
-                o_output_req = 5'b10000; // Local Core
-              end else if(i_y_dest > Y_LOC) begin
-                o_output_req = 5'b01000; // North
-              end else begin
-                o_output_req = 5'b00010; // South
-              end
-            end else if(i_x_dest > X_LOC) begin
-              o_output_req = 5'b00100; // East
+      // Torus Dimension Ordered Routing
+      // ----------------------------------------------------------------------------------------------------------------
+      always_comb begin
+        o_output_req = '0;
+        if(i_val) begin
+          if(i_x_dest == X_LOC) begin
+            if(i_y_dest == Y_LOC) begin
+              o_output_req = 5'b10000; // Local Core
+            
+            end else if(i_y_dest > Y_LOC) begin
+              o_output_req = 5'b01000; // North
             end else begin
-              o_output_req = 5'b00001; // West
+              o_output_req = 5'b00010; // South
             end
+            
+          end else if(i_x_dest > X_LOC) begin
+            o_output_req = 5'b00100; // East
           end else begin
-            o_output_req = 5'b00000; // No request
+            o_output_req = 5'b00001; // West
           end
-        end      
-
-      `endif
-    
+        end else begin
+          o_output_req = 5'b00000; // No request
+        end
+      end  
+      
     `endif
-    
+  
   `else
   
-    // INSERT ROUTING FOR OTHER ELECTRICAL NETWORK TOPOLOGIES HERE
+    `ifdef ADAPTIVE
+    
+      // DEFINE ADAPTIVE MESH ROUTING ALGORITHM HERE
+    
+    `else
+
+      // 2D Mesh Dimension Ordered Routing
+      // ----------------------------------------------------------------------------------------------------------------
+      always_comb begin
+        o_output_req = '0;
+        if(i_val) begin
+          if(i_x_dest == X_LOC) begin
+            if(i_y_dest == Y_LOC) begin
+              o_output_req = 5'b10000; // Local Core
+            end else if(i_y_dest > Y_LOC) begin
+              o_output_req = 5'b01000; // North
+            end else begin
+              o_output_req = 5'b00010; // South
+            end
+          end else if(i_x_dest > X_LOC) begin
+            o_output_req = 5'b00100;   // East
+          end else begin
+            o_output_req = 5'b00001;   // West
+          end
+        end else begin
+          o_output_req = 5'b00000;     // No request
+        end
+      end      
+
+    `endif
   
   `endif
 

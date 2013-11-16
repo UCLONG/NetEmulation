@@ -71,16 +71,16 @@
     // Uses        : LIB_PPE_RoundRobin.sv
     // --------------------------------------------------------------------------------------------------------------------
 
-### LIB_VirtualChannel    
+### LIB_VOQ   
     
     // --------------------------------------------------------------------------------------------------------------------
     // IP Block    : LIB
-    // Function    : VirtualChannel
-    // Module name : LIB_VirtualChannel
-    // Description : Instantiates an independent FIFO for each output port.  Stores input data to single FIFO according to  
-    //             : a onehot input valid.  Multiplexes the output data to a single port according to a onehot enable input
+    // Function    : VOQ
+    // Module name : LIB_VOQ
+    // Description : Virtual Output Queue.  Instantiates an independent FIFO for each output port.  Stores input data to   
+    //             : single FIFO according to a onehot input valid.  Multiplexes the output data to a single port according 
+    //             : to a onehot enable input
     // Uses        : LIB_FIFO_packet_t.sv,
-    // Notes       : Untested.
     // --------------------------------------------------------------------------------------------------------------------
     
 ### LIB_Switch_OneHot_packet_t    

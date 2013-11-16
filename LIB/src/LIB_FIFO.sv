@@ -119,7 +119,7 @@ module LIB_FIFO
           end
         end      
       end else if (o_full) begin
-        o_full <= (~i_data_val && i_en) ? 0 : 1;       
+        o_full <= (~i_data_val && i_en) ? 1'b0 : 1'b1;       
       end
       
       assign o_en = (~o_full || i_en);
@@ -135,7 +135,7 @@ module LIB_FIFO
           end
         end      
       end else if (o_empty) begin
-        o_empty <= (i_data_val) ? 0 : 1;     
+        o_empty <= (i_data_val) ? 1'b0 : 1'b1;     
       end 
       
       assign o_data_val = ~o_empty;
@@ -145,7 +145,7 @@ module LIB_FIFO
       if (~o_near_empty) begin
        
         if(o_empty) begin
-          o_near_empty <= i_data_val ? 1 : 0;
+          o_near_empty <= i_data_val ? 1'b1 : 1'b0;
         end else if(~o_empty) begin
           if(~i_data_val && i_en) begin
             for(int i=0; i<DEPTH; i++) begin
@@ -163,7 +163,7 @@ module LIB_FIFO
         end
       
       end else if(o_near_empty) begin  
-        o_near_empty <= (~(i_en ^^ i_data_val)) ? 1 : 0;   
+        o_near_empty <= (~(i_en ^^ i_data_val)) ? 1'b1 : 1'b0;   
       end
       
     end 

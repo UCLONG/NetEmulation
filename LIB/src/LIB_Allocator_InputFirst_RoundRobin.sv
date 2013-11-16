@@ -25,8 +25,9 @@ module LIB_Allocator_InputFirst_RoundRobin
          
   // Input Arbitration
   // ------------------------------------------------------------------------------------------------------------------
+  genvar i;
   generate
-    for(genvar i=0; i<N; i++) begin
+    for(i=0; i<N; i++) begin : INPUT_ARBITRATION
       LIB_PPE_RoundRobin #(.N(M))
         gen_LIB_PPE_RoundRobin (.clk,
                                 .reset_n,
@@ -47,7 +48,7 @@ module LIB_Allocator_InputFirst_RoundRobin
   // Output Arbitration
   // ------------------------------------------------------------------------------------------------------------------
   generate
-    for(genvar i=0; i<M; i++) begin
+    for(i=0; i<M; i++) begin : OUTPUT_ARBITRATION
       LIB_PPE_RoundRobin #(.N(N))
         gen_LIB_PPE_RoundRobin (.clk,
                                 .reset_n,

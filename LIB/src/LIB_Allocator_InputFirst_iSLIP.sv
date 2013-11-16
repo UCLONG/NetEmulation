@@ -26,8 +26,9 @@ module LIB_Allocator_InputFirst_iSLIP
          
   // Input Arbitration
   // ------------------------------------------------------------------------------------------------------------------
+  genvar i;
   generate
-    for(genvar i=0; i<N; i++) begin
+    for(i=0; i<N; i++) begin : INPUT_ARBITRATION
       LIB_PPE #(.N(M))
         gen_LIB_PPE (.i_request(i_request[i]),
                      .i_priority(l_input_priority[i]),
@@ -47,8 +48,8 @@ module LIB_Allocator_InputFirst_iSLIP
   
   // Output Arbitration
   // ------------------------------------------------------------------------------------------------------------------
-  generate
-    for(genvar i=0; i<M; i++) begin
+  generate 
+    for(i=0; i<M; i++) begin : OUTPUT_ARBITRATION
       LIB_PPE_RoundRobin #(.N(N))
         gen_LIB_PPE_RoundRobin (.clk,
                                 .reset_n,

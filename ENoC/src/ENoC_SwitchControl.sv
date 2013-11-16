@@ -23,10 +23,10 @@ module ENoC_SwitchControl
   
          logic [0:M-1][0:N-1] l_req_matrix;    // Packed requests for the [c,n,e,s,w] output
   
-  `ifdef VC
+  `ifdef VOQ
 
-    // Virtual Channels are used, each input can request multiple outputs, need to arbitrate input and output using an
-    // allocator.  The input 'output_req' is N, M-bit words.  Each word corresponds to an input port, each bit 
+    // Virtual Output Queues are used, each input can request multiple outputs, need to arbitrate input and output 
+    // using an allocator.  The input 'output_req' is N, M-bit words.  Each word corresponds to an input port, each bit 
     // corresponds to the requested output port.  First block ensures VCs will not request an input port if the output
     // port it requires is unavailable.  This is then fed into either a round robin allocator or an iSLIP allocator.
     // ----------------------------------------------------------------------------------------------------------------
@@ -59,9 +59,9 @@ module ENoC_SwitchControl
 
   `else
 
-    // No virtual channels, each input can only request a single output, only need to arbitrate for the output port.
-    // The input 'output_req' is N, M-bit words.  Each word corresponds to an input port, each bit corresponds to the 
-    // requested output port.  This is transposed so that each word corresponds to an output port, and each bit 
+    // No virtual Output Queues, each input can only request a single output, only need to arbitrate for the output 
+    // port. The input 'output_req' is N, M-bit words.  Each word corresponds to an input port, each bit corresponds to 
+    // the requested output port.  This is transposed so that each word corresponds to an output port, and each bit 
     // corresponds to an input that requested it.  This also ensures that output port requests will not be made if the 
     // corresponding output enable is low.  This is then fed into M round robin arbiters.
     // ----------------------------------------------------------------------------------------------------------------
@@ -74,8 +74,9 @@ module ENoC_SwitchControl
       end
     end
   
+    genvar i;
     generate
-      for (genvar i=0; i<M; i++) begin
+      for (i=0; i<M; i++) begin : OUTPUT_ARBITRATION
         LIB_PPE_RoundRobin #(.N(N)) gen_LIB_PPE_RoundRobin (.clk,
                                                             .reset_n,
                                                             .i_request(l_req_matrix[i]),

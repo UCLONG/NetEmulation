@@ -10,8 +10,6 @@
 // Notes       : FIFO uses the packet definition from config.sv.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "config.sv"
-
 module LIB_FIFO_packet_t
 
 #(parameter DEPTH = 4)
@@ -47,11 +45,9 @@ module LIB_FIFO_packet_t
         l_mem_ptr[i].wr_ptr   <= 0;
       end
       o_data                  <= 0;
-      o_data_val              <= 0;
       o_full                  <= 0;
       o_empty                 <= 1;
-      o_near_empty            <= 0;
-      o_en                    <= 1;          
+      o_near_empty            <= 0;         
     end
  
     else begin
@@ -110,8 +106,7 @@ module LIB_FIFO_packet_t
         end
       end
 
-      // Full Flag and Output Enable.  Note, enable is NOT simply the inverse of full.  The FIFO can still accept data
-      // when full, provided data will be read in the same cycle.
+      // Full Flag.  
       // --------------------------------------------------------------------------------------------------------------
       if (~o_full) begin
         if(i_data_val && ~i_en) begin
@@ -122,12 +117,10 @@ module LIB_FIFO_packet_t
           end
         end      
       end else if (o_full) begin
-        o_full <= (~i_data_val && i_en) ? 0 : 1;       
+        o_full <= (~i_data_val && i_en) ? 1'b0 : 1'b1;       
       end
-      
-      assign o_en = (~o_full || i_en);
     
-      // Empty Flag and Output Valid.  Note, valid is simply the inverse of empty.
+      // Empty Flag and Output Valid.
       // --------------------------------------------------------------------------------------------------------------
       if (~o_empty) begin
         if(~i_data_val && i_en) begin
@@ -138,17 +131,15 @@ module LIB_FIFO_packet_t
           end
         end      
       end else if (o_empty) begin
-        o_empty <= (i_data_val) ? 0 : 1;     
+        o_empty <= (i_data_val) ? 1'b0 : 1'b1;     
       end 
-      
-      assign o_data_val = ~o_empty;
       
       // Nearly Empty Flag.
       // --------------------------------------------------------------------------------------------------------------
       if (~o_near_empty) begin
        
         if(o_empty) begin
-          o_near_empty <= i_data_val ? 1 : 0;
+          o_near_empty <= i_data_val ? 1'b1 : 1'b0;
         end else if(~o_empty) begin
           if(~i_data_val && i_en) begin
             for(int i=0; i<DEPTH; i++) begin
@@ -166,9 +157,17 @@ module LIB_FIFO_packet_t
         end
       
       end else if(o_near_empty) begin  
-        o_near_empty <= (~(i_en ^^ i_data_val)) ? 1 : 0;   
+        o_near_empty <= (~(i_en ^^ i_data_val)) ? 1'b1 : 1'b0;   
       end
       
     end 
   end 
-endmodule
+
+  // Valid/Enable.  Note, valid is simply the inverse of empty.  Also, enable is NOT simply the inverse of full.  The 
+  // FIFO can still accept data when full, provided data will be read in the same cycle.
+  // ------------------------------------------------------------------------------------------------------------------
+  assign o_data_val = ~o_empty;
+  assign o_en = (~o_full || i_en);
+
+
+  endmodule
