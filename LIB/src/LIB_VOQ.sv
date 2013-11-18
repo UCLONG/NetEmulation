@@ -13,7 +13,9 @@ module LIB_VOQ
 #(parameter M,     // Number of outputs requiring virtual channel
   parameter DEPTH) // Depth of the virtual channels
   
- (input logic clk, reset_n,
+ (input logic clk, 
+  input logic ce,
+  input logic reset_n,
   
   // Upstream Bus.
   // ------------------------------------------------------------------------------------------------------------------
@@ -39,6 +41,7 @@ module LIB_VOQ
     for (i=0; i<M; i++) begin : VIRTUAL_CHANNELS
       LIB_FIFO_packet_t #(.DEPTH(DEPTH))
         gen_LIB_FIFO_packet_t (.clk,
+                               .ce,
                                .reset_n,
                                .i_data(i_data),            // Each FIFO is connected to the same input data
                                .i_data_val(i_data_val[i]), // Each FIFO has an individual i_data_valid

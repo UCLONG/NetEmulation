@@ -14,13 +14,14 @@ module LIB_Allocator_InputFirst_RoundRobin
   parameter M) // Number of resources  (outputs)
 
  (input  logic clk,
+  input  logic ce,
   input  logic reset_n,
   
   input  logic [0:N-1][0:M-1] i_request, // N, M-bit request vectors.
   
   output logic [0:M-1][0:N-1] o_grant);  // M, N-bit Grant vectors
   
-         logic [0:N-1][0:M-1] l_input_grant; // Result from input arbitration
+         logic [0:N-1][0:M-1] l_input_grant;  // Result from input arbitration
          logic [0:M-1][0:N-1] l_intermediate; // Transpose of input grant result for output arbitration
          
   // Input Arbitration
@@ -30,6 +31,7 @@ module LIB_Allocator_InputFirst_RoundRobin
     for(i=0; i<N; i++) begin : INPUT_ARBITRATION
       LIB_PPE_RoundRobin #(.N(M))
         gen_LIB_PPE_RoundRobin (.clk,
+                                .ce,
                                 .reset_n,
                                 .i_request(i_request[i]),
                                 .o_grant(l_input_grant[i]));
@@ -51,6 +53,7 @@ module LIB_Allocator_InputFirst_RoundRobin
     for(i=0; i<M; i++) begin : OUTPUT_ARBITRATION
       LIB_PPE_RoundRobin #(.N(N))
         gen_LIB_PPE_RoundRobin (.clk,
+                                .ce,
                                 .reset_n,
                                 .i_request(l_intermediate[i]),
                                 .o_grant(o_grant[i]));

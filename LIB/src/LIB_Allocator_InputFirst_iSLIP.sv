@@ -14,6 +14,7 @@ module LIB_Allocator_InputFirst_iSLIP
   parameter M) // Number of resources  (outputs)
 
  (input  logic clk,
+  input  logic ce,
   input  logic reset_n,
   
   input  logic [0:N-1][0:M-1] i_request, // N, M-bit request vectors.
@@ -52,6 +53,7 @@ module LIB_Allocator_InputFirst_iSLIP
     for(i=0; i<M; i++) begin : OUTPUT_ARBITRATION
       LIB_PPE_RoundRobin #(.N(N))
         gen_LIB_PPE_RoundRobin (.clk,
+                                .ce,
                                 .reset_n,
                                 .i_request(l_intermediate[i]),
                                 .o_grant(o_grant[i]));
@@ -68,10 +70,12 @@ module LIB_Allocator_InputFirst_iSLIP
         l_input_priority[i][1:M-1] <= 0;
       end
     end else begin
-      for(int i=0; i<N; i++) begin
-        for(int j=0; j<M; j++) begin
-          l_input_priority[i] <= |o_grant[j][i] ? {l_input_priority[i][N-1], l_input_priority[i][0:N-2]} 
-                                                : l_input_priority[i];
+      if(ce) begin
+        for(int i=0; i<N; i++) begin
+          for(int j=0; j<M; j++) begin
+            l_input_priority[i] <= |o_grant[j][i] ? {l_input_priority[i][N-1], l_input_priority[i][0:N-2]} 
+                                                  : l_input_priority[i];
+          end
         end
       end
     end

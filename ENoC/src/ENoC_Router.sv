@@ -15,10 +15,15 @@
 
 module ENoC_Router
 
-#(parameter X_NODES,           // Number of cores on the X axis of the Mesh
-  parameter Y_NODES,           // Number of cores on the Y axis of the Mesh 
-  parameter X_LOC,             // location on the X axis of the Mesh
-  parameter Y_LOC,             // location on the Y axis of the Mesh
+#(`ifdef XY
+    parameter X_NODES,         // Total number of nodes on the X axis of the Mesh
+    parameter Y_NODES,         // Total number of nodes on the Y axis of the Mesh 
+    parameter X_LOC,           // Current node location on the X axis of the Mesh
+    parameter Y_LOC,           // Current node location on the Y axis of the Mesh
+  `else
+    parameter NODES,           // Total number of nodes
+    parameter LOC,             // Current node
+  `endif
   parameter INPUT_QUEUE_DEPTH, // Depth of input queues
   parameter N,                 // Number of input ports.
   parameter M)                 // Number of output ports.
@@ -51,6 +56,14 @@ module ENoC_Router
          logic    [0:N-1][0:M-1] l_output_req;   // Request sent to SwitchControl
          logic    [0:M-1][0:N-1] l_output_grant; // Grant from SwitchControl, used to control switch and FIFOs
          
+         // Pipe Line Control
+         pipe_line       [0:N-1] ce;
+         
+  // Pipe Line Control.  Signals are used as clock enable in pipelined designs that do not use speculative speed up.
+  // ------------------------------------------------------------------------------------------------------------------
+ 
+  // WILL INSERT PL CONTROL HERE ONCE COMPLETED
+
   `ifdef LOAD_BALANCE
   
     // Load Balancing.  Input data is assigned a random router input channel by inserting a crossbar between the
@@ -107,12 +120,13 @@ module ENoC_Router
 
          logic    [0:N-1][0:M-1] l_vc_req; // Connects the output request of the Route Calc to a VC
          logic    [0:N-1][0:M-1] l_en;     // Connects switch control enable output to VCs
+         genvar                  i;
     
-    genvar i;    
     generate
       for(i=0; i<N; i++) begin : GENERATE_VOQ
         LIB_VOQ #(.M(M), .DEPTH(INPUT_QUEUE_DEPTH))
           gen_LIB_VOQ (.clk,
+                       .ce,
                        .reset_n,
                        .i_data(l_i_data[i]),         // Single input data from upstream router
                        .i_data_val(l_vc_req[i]),     // Valid from routecalc corresponds to required VC
@@ -125,12 +139,20 @@ module ENoC_Router
     
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS    
-        ENoC_RouteCalculator #(.X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC)) 
-          gen_ENoC_RouteCalculator (// Delete commented code once packet_t is sorted
-			                           //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                    //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
-												.i_x_dest(l_data[i].x_dest),
-												.i_y_dest(l_data[i].y_dest),
+        ENoC_RouteCalculator #(`ifdef XY
+                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC))
+                               `else
+                                 .NODES(NODES), .LOC(LOC))
+                               `endif
+          gen_ENoC_RouteCalculator (`ifdef XY
+                                      // Delete commented code once packet_t is sorted
+                                      //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      .i_x_dest(l_data[i].x_dest),
+                                      .i_y_dest(l_data[i].y_dest),
+                                    `else
+                                      .i_dest(l_data[i].dest),
+                                    `endif
                                     .i_val(l_i_data_val[i]),      // From upstream router
                                     .o_output_req(l_vc_req[i]));  // To Switch Control
       end
@@ -154,12 +176,13 @@ module ENoC_Router
 
          logic            [0:N-1] l_data_val; // Connects FIFO valid output to the route calculator    
          logic            [0:N-1] l_en;       // Connects switch control enable output to FIFO
+         genvar                   i;     
 
-    genvar i;     
     generate
       for (i=0; i<N; i++) begin : GENERATE_INPUT_QUEUES
         LIB_FIFO_packet_t #(.DEPTH(INPUT_QUEUE_DEPTH))
           gen_LIB_FIFO_packet_t (.clk,
+                                 .ce,
                                  .reset_n,
                                  .i_data(l_i_data[i]),         // From the upstream routers
                                  .i_data_val(l_i_data_val[i]), // From the upstream routers
@@ -178,12 +201,20 @@ module ENoC_Router
     // ----------------------------------------------------------------------------------------------------------------
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS  
-        ENoC_RouteCalculator #(.X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC)) 
-          gen_ENoC_RouteCalculator (// Delete commented code once packet_t is sorted
-			                           //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                    //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
-												.i_x_dest(l_data[i].x_dest),
-												.i_y_dest(l_data[i].y_dest),
+        ENoC_RouteCalculator #(`ifdef XY
+                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC))
+                               `else
+                                 .NODES(NODES), .LOC(LOC))
+                               `endif 
+          gen_ENoC_RouteCalculator (`ifdef XY
+                                      // Delete commented code once packet_t is sorted
+                                      //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      .i_x_dest(l_data[i].x_dest),
+                                      .i_y_dest(l_data[i].y_dest),
+                                    `else
+                                      .i_dest(l_data[i].dest),
+                                    `endif
                                     .i_val(l_data_val[i]),                                      // From local FIFO
                                     .o_output_req(l_output_req[i]));                            // To Switch Control
       end
@@ -207,6 +238,7 @@ module ENoC_Router
   // ------------------------------------------------------------------------------------------------------------------  
   ENoC_SwitchControl #(.N(N), .M(M))
     inst_ENoC_SwitchControl (.clk,
+                             .ce,
                              .reset_n,
                              .i_en(i_en),                      // From the downstream router
                              .i_output_req(l_output_req),      // From the local VCs or Route Calculator

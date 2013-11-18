@@ -14,6 +14,7 @@ module ENoC_SwitchControl
   parameter M) // Number of outputs
 
  (input  logic clk,
+  input  logic ce,
   input  logic reset_n,
   
   input  logic        [0:M-1] i_en,            // hold ports signal from downstream router
@@ -43,17 +44,19 @@ module ENoC_SwitchControl
 
       LIB_Allocator_InputFirst_iSLIP #(.N(N), .M(M))
         inst_LIB_Allocator_InputFirst_iSLIP (.clk,
+                                             .ce,
                                              .reset_n,
                                              .i_request(l_req_matrix),
-                                             .o_grant(o_output_grant));
+                                             .o_grant(l_output_grant));
     
     `else
 
       LIB_Allocator_InputFirst_RoundRobin #(.N(N), .M(M))
         inst_LIB_Allocator_InputFirst_RoundRobin (.clk,
+                                                  .ce,
                                                   .reset_n,
                                                   .i_request(l_req_matrix),
-                                                  .o_grant(o_output_grant));
+                                                  .o_grant(l_output_grant));
 
     `endif
 
@@ -78,12 +81,33 @@ module ENoC_SwitchControl
     generate
       for (i=0; i<M; i++) begin : OUTPUT_ARBITRATION
         LIB_PPE_RoundRobin #(.N(N)) gen_LIB_PPE_RoundRobin (.clk,
+                                                            .ce,
                                                             .reset_n,
                                                             .i_request(l_req_matrix[i]),
-                                                            .o_grant(o_output_grant[i]));
+                                                            .o_grant(l_output_grant[i]));
       end
     endgenerate
 
+  `endif
+
+  // Pipe line control.
+  // ------------------------------------------------------------------------------------------------------------------
+  `ifdef PIPE_LINE_SA
+  
+    always_ff@(posedge clk) begin
+      if(~reset_n) begin
+        o_output_grant <= 0;
+      end else begin
+        if(ce) begin
+          o_output_grant <= l_output_grant;
+        end
+      end
+    end
+  
+  `else
+  
+    assign o_output_grant = l_output_grant;
+  
   `endif
 
 endmodule

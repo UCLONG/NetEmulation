@@ -13,6 +13,7 @@ module LIB_PPE_RoundRobin
 #(parameter N) // Number of requesters
 
  (input  logic clk,
+  input  logic ce,
   input  logic reset_n,
   
   input  logic [0:N-1] i_request,         // Active high Request vector
@@ -44,7 +45,9 @@ module LIB_PPE_RoundRobin
       l_priority[0] <= 1'b1;
       l_priority[1:N-1] <= 0;
     end else begin
-      l_priority <= |o_grant ? {o_grant[N-1], o_grant[0:N-2]} : l_priority;
+      if(ce) begin
+        l_priority <= |o_grant ? {o_grant[N-1], o_grant[0:N-2]} : l_priority;
+      end
     end
   end
   

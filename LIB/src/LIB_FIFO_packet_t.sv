@@ -8,13 +8,17 @@
 //             : according to read and write requests.
 // Uses        : config.sv
 // Notes       : FIFO uses the packet definition from config.sv.
+
 // --------------------------------------------------------------------------------------------------------------------
 
 module LIB_FIFO_packet_t
 
 #(parameter DEPTH = 4)
 
- (input  logic clk, reset_n,
+
+ (input  logic clk, 
+  input  logic ce,
+  input  logic reset_n,
   
   input  packet_t i_data,            // input data of the packet_t type to be stored into the FIFO
   input  logic    i_data_val,        // Validates the data on i_data.  If high, i_data will be sampled.
@@ -31,10 +35,12 @@ module LIB_FIFO_packet_t
          ptr      l_mem_ptr       [DEPTH-1:0];
          packet_t l_mem           [DEPTH-1:0];
 
-    
+
   always_ff@(posedge clk) begin
     
     if(~reset_n) begin
+    
+
       for(int i=0; i<DEPTH; i++) begin
         l_mem[i]              <= 0;
       end
@@ -45,121 +51,129 @@ module LIB_FIFO_packet_t
         l_mem_ptr[i].wr_ptr   <= 0;
       end
       o_data                  <= 0;
+
       o_full                  <= 0;
       o_empty                 <= 1;
       o_near_empty            <= 0;         
-    end
- 
-    else begin
-      
-      // Memory Write
-      // --------------------------------------------------------------------------------------------------------------
-      if(i_data_val && (~o_full || i_en)) begin
-        // Write Data to memory location indicated by the write pointer
-        for(int i=0; i<DEPTH; i++) begin
-          l_mem[i] <= l_mem_ptr[i].wr_ptr ? i_data : l_mem[i];
-        end
-        // Increment the write pointer to the next memory location
-        for(int i=0; i<DEPTH-1; i++) begin
-          l_mem_ptr[i+1].wr_ptr <= l_mem_ptr[i].wr_ptr;
-        end
-        l_mem_ptr[0].wr_ptr <= l_mem_ptr[DEPTH-1].wr_ptr;
-      end
-     
-      // Output Write
-      // --------------------------------------------------------------------------------------------------------------
-      if(i_en && ~o_empty) begin       
-        // Data was read from memory so the next data needs loading into the output.
-        if(o_near_empty) begin
-          // Next memory location is currently empty, 
-          if(i_data_val) begin
-            // New data is being loaded 
-            o_data <= i_data;
-          end else begin
-            // FIFO has emptied
-            o_data <= o_data;
-          end
-        end else begin
-          // Next memory location all ready contains next data
-          for(int i=0; i<DEPTH; i++) begin
-            if (l_mem_ptr[i].rd_ptr) begin
-              if(i<DEPTH-1) begin
-                o_data <= l_mem[i+1];
-              end else begin
-                o_data <= l_mem[0];
-              end
-            end
-          end
-        end
-        // Increment Read Pointer.
-        for(int i=0; i<DEPTH-1; i++) begin
-          l_mem_ptr[i+1].rd_ptr <= l_mem_ptr[i].rd_ptr;
-        end
-        l_mem_ptr[0].rd_ptr <= l_mem_ptr[DEPTH-1].rd_ptr;
-      end else if(o_empty && i_data_val) begin
-        // Data was written into empty memory, output should be updated immediately
-        o_data <= i_data;
-      end else begin
-        // Data was not read from memory, the output currently holds a valid packet, keep output data the same.
-        for(int i=0; i<DEPTH; i++) begin
-          if(l_mem_ptr[i].rd_ptr) o_data <= l_mem[i];
-        end
-      end
 
-      // Full Flag.  
-      // --------------------------------------------------------------------------------------------------------------
-      if (~o_full) begin
-        if(i_data_val && ~i_en) begin
-          for(int i=0; i<DEPTH; i++) begin
-            if(l_mem_ptr[i].wr_ptr) begin
-              o_full <= (i<DEPTH-1) ? l_mem_ptr[i+1].rd_ptr : l_mem_ptr[0].rd_ptr;
-            end
-          end
-        end      
-      end else if (o_full) begin
-        o_full <= (~i_data_val && i_en) ? 1'b0 : 1'b1;       
-      end
-    
-      // Empty Flag and Output Valid.
-      // --------------------------------------------------------------------------------------------------------------
-      if (~o_empty) begin
-        if(~i_data_val && i_en) begin
-          for(int i=0; i<DEPTH; i++) begin
-            if(l_mem_ptr[i].rd_ptr) begin
-              o_empty <= (i<DEPTH-1) ? l_mem_ptr[i+1].wr_ptr : l_mem_ptr[0].wr_ptr;
-            end
-          end
-        end      
-      end else if (o_empty) begin
-        o_empty <= (i_data_val) ? 1'b0 : 1'b1;     
-      end 
+ 
+    end else begin
+      if(ce) begin
       
-      // Nearly Empty Flag.
-      // --------------------------------------------------------------------------------------------------------------
-      if (~o_near_empty) begin
+        // Memory Write
+        // ------------------------------------------------------------------------------------------------------------
+        if(i_data_val && (~o_full || i_en)) begin
+          // Write Data to memory location indicated by the write pointer
+          for(int i=0; i<DEPTH; i++) begin
+            l_mem[i] <= l_mem_ptr[i].wr_ptr ? i_data : l_mem[i];
+          end
+          // Increment the write pointer to the next memory location
+          for(int i=0; i<DEPTH-1; i++) begin
+            l_mem_ptr[i+1].wr_ptr <= l_mem_ptr[i].wr_ptr;
+          end
+          l_mem_ptr[0].wr_ptr <= l_mem_ptr[DEPTH-1].wr_ptr;
+        end
        
-        if(o_empty) begin
-          o_near_empty <= i_data_val ? 1'b1 : 1'b0;
-        end else if(~o_empty) begin
-          if(~i_data_val && i_en) begin
+        // Output Write
+        // ------------------------------------------------------------------------------------------------------------
+        if(i_en && ~o_empty) begin       
+          // Data was read from memory so the next data needs loading into the output.
+          if(o_near_empty) begin
+            // Next memory location is currently empty, 
+            if(i_data_val) begin
+              // New data is being loaded 
+              o_data <= i_data;
+            end else begin
+              // FIFO has emptied
+              o_data <= o_data;
+            end
+          end else begin
+            // Next memory location all ready contains next data
             for(int i=0; i<DEPTH; i++) begin
-              if(l_mem_ptr[i].rd_ptr) begin   
-                if(i<DEPTH-2) begin
-                  o_near_empty <= l_mem_ptr[i+2].wr_ptr;
-                end else if(i==DEPTH-1) begin
-                  o_near_empty <= l_mem_ptr[0].wr_ptr;
+              if (l_mem_ptr[i].rd_ptr) begin
+                if(i<DEPTH-1) begin
+                  o_data <= l_mem[i+1];
                 end else begin
-                  o_near_empty <= l_mem_ptr[1].wr_ptr;
+                  o_data <= l_mem[0];
                 end
               end
             end
           end
+          // Increment Read Pointer.
+          for(int i=0; i<DEPTH-1; i++) begin
+            l_mem_ptr[i+1].rd_ptr <= l_mem_ptr[i].rd_ptr;
+          end
+          l_mem_ptr[0].rd_ptr <= l_mem_ptr[DEPTH-1].rd_ptr;
+        end else if(o_empty && i_data_val) begin
+          // Data was written into empty memory, output should be updated immediately
+          o_data <= i_data;
+        end else begin
+          // Data was not read from memory, the output currently holds a valid packet, keep output data the same.
+          for(int i=0; i<DEPTH; i++) begin
+            if(l_mem_ptr[i].rd_ptr) o_data <= l_mem[i];
+          end
         end
+
+        // Full Flag.  
+
+        // ------------------------------------------------------------------------------------------------------------
+        if (~o_full) begin
+          if(i_data_val && ~i_en) begin
+            for(int i=0; i<DEPTH; i++) begin
+              if(l_mem_ptr[i].wr_ptr) begin
+                o_full <= (i<DEPTH-1) ? l_mem_ptr[i+1].rd_ptr : l_mem_ptr[0].rd_ptr;
+              end
+            end
+          end      
+        end else if (o_full) begin
+          o_full <= (~i_data_val && i_en) ? 1'b0 : 1'b1;       
+        end
+
+
       
-      end else if(o_near_empty) begin  
-        o_near_empty <= (~(i_en ^^ i_data_val)) ? 1'b1 : 1'b0;   
+        // Empty Flag and Output Valid.
+        // ------------------------------------------------------------------------------------------------------------
+        if (~o_empty) begin
+          if(~i_data_val && i_en) begin
+            for(int i=0; i<DEPTH; i++) begin
+              if(l_mem_ptr[i].rd_ptr) begin
+                o_empty <= (i<DEPTH-1) ? l_mem_ptr[i+1].wr_ptr : l_mem_ptr[0].wr_ptr;
+              end
+            end
+          end      
+        end else if (o_empty) begin
+          o_empty <= (i_data_val) ? 1'b0 : 1'b1;     
+        end 
+        
+
+
+        // Nearly Empty Flag.
+        // ------------------------------------------------------------------------------------------------------------
+        if (~o_near_empty) begin
+         
+          if(o_empty) begin
+            o_near_empty <= i_data_val ? 1'b1 : 1'b0;
+          end else if(~o_empty) begin
+            if(~i_data_val && i_en) begin
+              for(int i=0; i<DEPTH; i++) begin
+                if(l_mem_ptr[i].rd_ptr) begin   
+                  if(i<DEPTH-2) begin
+                    o_near_empty <= l_mem_ptr[i+2].wr_ptr;
+                  end else if(i==DEPTH-1) begin
+                    o_near_empty <= l_mem_ptr[0].wr_ptr;
+                  end else begin
+                    o_near_empty <= l_mem_ptr[1].wr_ptr;
+                  end
+                end
+              end
+            end
+          end
+        
+        end else if(o_near_empty) begin  
+          o_near_empty <= (~(i_en ^^ i_data_val)) ? 1'b1 : 1'b0;   
+        end
+        
       end
-      
     end 
   end 
 
