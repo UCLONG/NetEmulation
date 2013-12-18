@@ -1,0 +1,44 @@
+vlib work
+
+vlog +acc "../src/verilog/bluespec/FIFO1.v"
+vlog +acc "../src/verilog/bluespec/FIFOL1.v"
+vlog +acc "../build/verilog/mkGetOutput.v"
+vlog +acc "../build/synth/coregen/cs_ila_v10.v"
+vlog +acc "../build/synth/coregen/cs_icon_v10.v"
+vlog +acc "../build/synth/coregen/cs_vio_v10.v"
+vlog +acc "../src/verilog/ring32b_bidir.v"
+vlog +acc "../src/verilog/fpga_top.v"
+vlog +acc "../sim/TB_fpgatop.v"
+vlog +acc  "C:/Xilinx/11.1/ISE/verilog/src/glbl.v"
+vsim -t 1ps -L xilinxcorelib_ver -L unisims_ver -L unimacro_ver -L secureip -lib work TB_fpgatop glbl 
+view wave
+view structure
+view signals
+add wave \
+{sim:/TB_fpgatop/CLK100M_N } \
+{sim:/TB_fpgatop/CLK100M_P } \
+{sim:/TB_fpgatop/ring_up_in } \
+{sim:/TB_fpgatop/ring_dn_in } \
+{sim:/TB_fpgatop/ring_up_out } \
+{sim:/TB_fpgatop/ring_dn_out } \
+{sim:/TB_fpgatop/ring_lock_in } \
+{sim:/TB_fpgatop/ring_lock_out } \
+{sim:/TB_fpgatop/ring_ready_in } \
+{sim:/TB_fpgatop/ring_ready_out } \
+{sim:/TB_fpgatop/ring_dn_lock_in } \
+{sim:/TB_fpgatop/ring_dn_lock_out } \
+{sim:/TB_fpgatop/ring_dn_ready_in } \
+{sim:/TB_fpgatop/ring_dn_ready_out }
+add wave \
+{sim:/TB_fpgatop/uut/CLK } \
+{sim:/TB_fpgatop/uut/MCLKx } \
+{sim:/TB_fpgatop/uut/MCLK180x } \
+{sim:/TB_fpgatop/uut/clk100 } \
+{sim:/TB_fpgatop/uut/pllLock } \
+{sim:/TB_fpgatop/uut/c2c1_txdata } \
+{sim:/TB_fpgatop/uut/c2c1_rxdata } \
+{sim:/TB_fpgatop/uut/c2c2_txdata } \
+{sim:/TB_fpgatop/uut/c2c2_rxdata } \
+{sim:/TB_fpgatop/uut/c2c1_status } \
+{sim:/TB_fpgatop/uut/c2c2_status }
+run 1 us

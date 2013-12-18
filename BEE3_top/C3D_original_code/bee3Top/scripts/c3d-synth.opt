@@ -1,0 +1,37 @@
+FLOWTYPE = FPGA_SYNTHESIS;
+#--------------------------
+# Options for XST
+#--------------------------
+Program xst
+
+-ifn <design>_xst.scr;            # input XST script file
+-ofn <design>_xst.log;            # output XST log file
+-intstyle xflow;                  # Message Reporting Style: ise, xflow, or silent
+
+ParamFile: <design>_xst.scr
+"run";
+
+"-top c3dTop";                    # SD: specify the top level module, so there's no ambiguity
+"-ifn <synthdesign>";             # Input/Project File Name
+"-ifmt verilog";                  # Input Format (Verilog/VHDL/mixed), for "mixed" a <top>.prj must exist
+"-ofn <design>";                  # Output File Name 
+"-ofmt ngc";	         	      # Output File Format
+"-top <design>";                  # Top Design Name
+"-p <partname>";                  # Target Device
+"-verilog2001 YES";               # Enables the use of Verilog 2001 Constructs: YES, NO
+#"-opt_mode SPEED";               # Optimization Criteria: AREA or SPEED
+#"-uc <design>.xcf";              # Constraint File name
+#"-case maintain";                # Specifies how to handle source name case: upper, lower, maintain
+#"-keep_hierarchy NO";            # Prevents optimization across module boundaries: CPLD default YES, FPGA default NO
+#"-write_timing_constraints NO";  # Write Timing Constraints: YES, NO
+#"-cross_clock_analysis NO";      # Cross Clock Option: YES, NO
+#"-iobuf YES";                    # Add I/O Buffers to top level ports: YES, NO
+#"-register_balancing NO";        # Register Balancing: YES, NO, Forward, Backward
+#"-move_first_stage YES";         # Move First Flip-Flop Stage: YES, NO
+#"-move_last_stage YES";          # Move Last Flip-Flop Stage: YES, NO
+
+End ParamFile
+End Program xst
+
+
+

@@ -1,0 +1,587 @@
+
+#######################################################################
+# Clock
+#######################################################################
+
+#100M clock pins (uncomment these when using the 100 MHz input)
+#NET CLK100M_N   LOC = AG15 | IOSTANDARD = LVDS_25;
+#NET CLK100M_P   LOC = AH15 | IOSTANDARD = LVDS_25;
+
+#NET "clk100" TNM_NET = clk100;
+#TIMESPEC TS_clk100 = PERIOD "clk100" 10 ns HIGH 50%;
+
+# B2B 156.25 MHz clock inputs
+NET B2B_REFCLK_P  LOC=D8; 
+NET B2B_REFCLK_N  LOC=C8; 
+
+NET "clkMain" TNM_NET = USER_CLK;
+TIMESPEC TS_user_clk_i = PERIOD "USER_CLK" 6.4 ns HIGH 50%;
+
+# Sync Clock Constraint
+NET b2b_sync_clk PERIOD = 3.2 ns HIGH 50%;
+
+# Reference clock contraint for GTP
+NET b2b_0/GTPD7_left_i PERIOD = 6.4 ns HIGH 50%;
+
+#######################################################################
+# General purpose signals
+#######################################################################
+
+NET UART_RX 	LOC = H23 | IOSTANDARD = LVCMOS33;
+NET UART_TX 	LOC = H22 | IOSTANDARD = LVCMOS33;
+
+#######################################################################
+# B2B module constraints
+#######################################################################
+
+# Not required in long term
+#NET frame_check_i/* TIG;
+#NET frame_check2_i/* TIG;
+
+# GTP TILE LOCATIONS
+INST b2b_0/aurora_module_i/gtp_wrapper_i/GTP_TILE_INST/gtp_tile_i LOC=GTP_DUAL_X0Y6;
+INST b2b_0/aurora_module_i/gtp_wrapper_i/GTP_TILE_INST_LANE1/gtp_tile_i LOC=GTP_DUAL_X0Y7;
+INST b2b_0/aurora_module2_i/gtp_wrapper_i/GTP_TILE_INST/gtp_tile_i LOC=GTP_DUAL_X0Y4;
+INST b2b_0/aurora_module2_i/gtp_wrapper_i/GTP_TILE_INST_LANE1/gtp_tile_i LOC=GTP_DUAL_X0Y5;
+
+#######################################################################
+# C2C module constraints
+#######################################################################
+
+# UP
+NET C2C_U_IN<0> 		LOC = AC4  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<1> 		LOC = AC5  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<2> 		LOC = AB6  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<3> 		LOC = AB7  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<4> 		LOC = AA5  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<5> 		LOC = AB5  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<6> 		LOC = AC7  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<7> 		LOC = AD7  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<8> 		LOC = Y8   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<9> 		LOC = AD4  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<10> 		LOC = AD5  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<11> 		LOC = AA6  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<12> 		LOC = Y7   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<13> 		LOC = AK7  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<14> 		LOC = AK6  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<15> 		LOC = AH7  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<16> 		LOC = AB10 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<17> 		LOC = AA10 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<18> 		LOC = AA8  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<19> 		LOC = AA9  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<20> 		LOC = AC8  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<21> 		LOC = AB8  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<22> 		LOC = AJ9  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<23> 		LOC = AH9  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<24> 		LOC = AK8  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<25> 		LOC = AH10 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<26> 		LOC = AF11 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<27> 		LOC = AP14 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<28> 		LOC = AG8  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<29> 		LOC = AH8  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<30> 		LOC = AG10 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_IN<31> 		LOC = AG11 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<0> 		LOC = AA25 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<1> 		LOC = AA26 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<2> 		LOC = AB27 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<3> 		LOC = AC27 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<4> 		LOC = Y24  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<5> 		LOC = AA24 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<6> 		LOC = AB25 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<7> 		LOC = AB26 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<8> 		LOC = AC28 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<9> 		LOC = AB28 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<10> 		LOC = AA28 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<11> 		LOC = AC25 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<12> 		LOC = AC24 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<13> 		LOC = AD26 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<14> 		LOC = AD25 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<15> 		LOC = AD24 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<16> 		LOC = Y26  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<17> 		LOC = Y27  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<18> 		LOC = W29  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<19> 		LOC = V27  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<20> 		LOC = AC29 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<21> 		LOC = AF31 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<22> 		LOC = AE29 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<23> 		LOC = V29  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<24> 		LOC = AJ31 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<25> 		LOC = AK31 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<26> 		LOC = AF29 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<27> 		LOC = AF30 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<28> 		LOC = AJ30 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<29> 		LOC = AH30 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<30> 		LOC = AH29 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_OUT<31> 		LOC = AG30 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_LOCK_IN   	LOC = AE7  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_LOCK_OUT 	    LOC = AE8  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_RDY_IN 	    LOC = AK28 | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_U_RDY_OUT    	LOC = AA29 | IOSTANDARD = SSTL18_II_DCI;
+
+# DOWN
+NET C2C_D_OUT<0> 		LOC = M6   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<1> 		LOC = M5   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<2> 		LOC = N8   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<3> 		LOC = N7   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<4> 		LOC = M7   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<5> 		LOC = N5   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<6> 		LOC = L4   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<7> 		LOC = P7   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<8> 		LOC = G5   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<9> 		LOC = F5   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<10> 		LOC = F6   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<11> 		LOC = T11  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<12> 		LOC = G6   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<13> 		LOC = G7   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<14> 		LOC = E6   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<15> 		LOC = E7   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<16> 		LOC = E9   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<17> 		LOC = E8   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<18> 		LOC = F9   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<19> 		LOC = F8   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<20> 		LOC = F10  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<21> 		LOC = G10  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<22> 		LOC = G8   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<23> 		LOC = H8   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<24> 		LOC = K11  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<25> 		LOC = J9   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<26> 		LOC = H10  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<27> 		LOC = H9   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<28> 		LOC = G11  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<29> 		LOC = F11  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<30> 		LOC = E11  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_OUT<31> 		LOC = L9   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<0> 		LOC = K24  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<1> 		LOC = L24  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<2> 		LOC = L25  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<3> 		LOC = L26  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<4> 		LOC = M25  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<5> 		LOC = M26  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<6> 		LOC = M28  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<7> 		LOC = N28  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<8> 		LOC = P26  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<9> 		LOC = P27  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<10> 		LOC = N24  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<11> 		LOC = P24  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<12> 		LOC = P25  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<13> 		LOC = N25  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<14> 		LOC = R24  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<15> 		LOC = T24  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<16> 		LOC = E29  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<17> 		LOC = F29  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<18> 		LOC = G30  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<19> 		LOC = F30  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<20> 		LOC = H29  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<21> 		LOC = F31  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<22> 		LOC = E31  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<23> 		LOC = G31  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<24> 		LOC = U30  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<25> 		LOC = T28  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<26> 		LOC = U27  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<27> 		LOC = U28  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<28> 		LOC = U26  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<29> 		LOC = T26  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<30> 		LOC = U25  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_IN<31> 		LOC = T25  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_LOCK_OUT 		LOC = H7   | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_LOCK_IN 		LOC = J10  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_RDY_OUT 		LOC = G27  | IOSTANDARD = SSTL18_II_DCI;
+NET C2C_D_RDY_IN 		LOC = N29  | IOSTANDARD = SSTL18_II_DCI;
+
+#######################################################################
+# DDR2 module constraints
+#######################################################################
+
+#### NOTE: for getting the LOCs for DDR controller, remove *single ####
+####       row of '#' from following lines                         ####
+
+## Controller A ========================================================
+#
+#NET "a_DQ<*>" 			IOSTANDARD = SSTL18_II_DCI;
+#NET "a_DQS<*>" 			IOSTANDARD = DIFF_SSTL18_II;
+#NET "a_DQS_L<*>" 		IOSTANDARD = DIFF_SSTL18_II;
+#NET "a_DIMMCK<*>" 		IOSTANDARD = DIFF_SSTL18_II;
+#NET "a_DIMMCKL<*>" 		IOSTANDARD = DIFF_SSTL18_II;
+#NET "a_A<*>" 			IOSTANDARD = SSTL18_II;
+#NET "a_RAS" 			IOSTANDARD = SSTL18_II;
+#NET "a_CAS" 			IOSTANDARD = SSTL18_II;
+#NET "a_WE" 				IOSTANDARD = SSTL18_II;
+#NET "a_BA<*>" 			IOSTANDARD = SSTL18_II;
+#NET "a_RS<*>" 			IOSTANDARD = SSTL18_II;
+#NET "a_ODT<*>" 			IOSTANDARD = SSTL18_II;
+#
+#NET "a_DIMMreset" 		IOSTANDARD = LVCMOS25;
+#NET "a_ClkEn" 			IOSTANDARD = SSTL18_II;
+#
+#NET "a_ClkEn" 			LOC = "F15";
+#NET "a_DIMMreset" 		LOC = "AF18"; // DDR2A_RESET_B
+#NET "a_DIMMCK<0>" 		LOC = "E22";  // O bank 5
+#NET "a_DIMMCKL<0>" 		LOC = "F23";  // O
+#NET "a_DIMMCK<1>" 		LOC = "D24";  // O
+#NET "a_DIMMCKL<1>" 		LOC = "E23";  // O
+#
+#NET "a_A<0>" 			LOC = "C22"; //bank 23
+#NET "a_A<1>"  			LOC = "B21";
+#NET "a_A<2>"  			LOC = "C20";
+#NET "a_A<3>"  			LOC = "A21";
+#NET "a_A<4>"  			LOC = "B20";
+#NET "a_A<5>"  			LOC = "A20";
+#NET "a_A<6>"  			LOC = "C19";
+#NET "a_A<7>"  			LOC = "C18";
+#NET "a_A<8>"  			LOC = "A19";
+#NET "a_A<9>"  			LOC = "B18";
+#NET "a_A<10>" 			LOC = "E24"; //bank 5
+#NET "a_A<11>" 			LOC = "F18";
+#NET "a_A<12>" 			LOC = "K7";  //bank 12
+#NET "a_A<13>" 			LOC = "B31"; //bank 23
+#
+#NET "a_BA<0>" 			LOC = "F24"; //bank 5
+#NET "a_BA<1>" 			LOC = "D22"; //bank 5
+#NET "a_BA<2>" 			LOC = "J11"; //bank 20
+#
+#NET "a_RAS" 			LOC = "H27"; //bank 19
+#NET "a_CAS" 			LOC = "D30"; //bank 23
+#NET "a_WE"  			LOC = "D29"; //bank 23
+#
+#NET "a_RS<0>"  			LOC = "P29"; //bank 15
+#NET "a_RS<1>"  			LOC = "B30"; //bank 23
+#NET "a_RS<2>"  			LOC = "C30";
+#NET "a_RS<3>"  			LOC = "D31";
+#NET "a_ODT<0>" 			LOC = "A30";
+#NET "a_ODT<1>" 			LOC = "A31";
+#
+###DQ/DQS Lanes
+#
+#NET "a_DQ<0>" 			LOC = "R11"; // bank 12
+#NET "a_DQ<1>" 			LOC = "R6";
+#NET "a_DQ<2>" 			LOC = "P5";
+#NET "a_DQ<3>" 			LOC = "P6";
+#NET "a_DQS<0>" 			LOC = "R7";
+#NET "a_DQS_L<0>" 		LOC = "R8";
+#
+#NET "a_DQ<4>" 			LOC = "U10"; // bank 12
+#NET "a_DQ<5>" 			LOC = "T9";
+#NET "a_DQ<6>" 			LOC = "T6";
+#NET "a_DQ<7>" 			LOC = "T10";
+#NET "a_DQS<1>" 			LOC = "T8";  // a_DQS<9> on the board
+#NET "a_DQS_L<1>" 		LOC = "U7";
+#
+#NET "a_DQ<8>"    		LOC = "L6"; //bank 12
+#NET "a_DQ<9>"    		LOC = "K6";
+#NET "a_DQ<10>"   		LOC = "J7";
+#NET "a_DQ<11>"   		LOC = "H5";
+#NET "a_DQS<2>"   		LOC = "J6";  //a_DQS<1> on the board
+#NET "a_DQS_L<2>" 		LOC = "J5";
+#		
+#NET "a_DQ<12>"   		LOC = "N9";  //bank 20
+#NET "a_DQ<13>"   		LOC = "N10";
+#NET "a_DQ<14>"   		LOC = "M8";
+#NET "a_DQ<15>"   		LOC = "M10";
+#NET "a_DQS<3>"   		LOC = "K8";  //a_DQS<10> on the board
+#NET "a_DQS_L<3>" 		LOC = "K9";
+#		
+#NET "a_DQ<16>"   		LOC = "G12"; //bank 20
+#NET "a_DQ<17>"   		LOC = "E13";
+#NET "a_DQ<18>"   		LOC = "F13";
+#NET "a_DQ<19>"   		LOC = "G13";
+#NET "a_DQS<4>"   		LOC = "B13"; //a_DQS_2 on the board
+#NET "a_DQS_L<4>" 		LOC = "C13";
+#		
+#NET "a_DQ<20>"   		LOC = "D11";  //bank 20
+#NET "a_DQ<21>"   		LOC = "C12";
+#NET "a_DQ<22>"   		LOC = "D12";
+#NET "a_DQ<23>"   		LOC = "E12";
+#NET "a_DQS<5>"   		LOC = "A13";  //a_DQS<11> on the board
+#NET "a_DQS_L<5>" 		LOC = "B12";
+#		
+#NET "a_DQ<24>"   		LOC = "D16";  //bank 5
+#NET "a_DQ<25>"   		LOC = "F16";
+#NET "a_DQ<26>"   		LOC = "G17";
+#NET "a_DQ<27>"   		LOC = "D17";
+#NET "a_DQS<6>"   		LOC = "E17";  //a_DQS<3> on the board
+#NET "a_DQS_L<6>" 		LOC = "E16";
+#		
+#NET "a_DQ<28>"   		LOC = "A14"; //bank 5
+#NET "a_DQ<29>"   		LOC = "C14";
+#NET "a_DQ<30>"   		LOC = "F14";
+#NET "a_DQ<31>"   		LOC = "A16";
+#NET "a_DQS<7>"   		LOC = "D14"; //a_DQS<12> on the board
+#NET "a_DQS_L<7>" 		LOC = "E14";
+#
+#NET "a_DQ<32>"   		LOC = "E19";  //bank 5. Called CB4-CB7 on the board
+#NET "a_DQ<33>"   		LOC = "D20";
+#NET "a_DQ<34>"   		LOC = "D21";
+#NET "a_DQ<35>"   		LOC = "E21";
+#NET "a_DQS<8>"   		LOC = "G20";  //a_DQS<17> on the board
+#NET "a_DQS_L<8>" 		LOC = "F20";
+#		
+#NET "a_DQ<36>"   		LOC = "C27"; //bank 23
+#NET "a_DQ<37>"   		LOC = "D27";
+#NET "a_DQ<38>"   		LOC = "C28";
+#NET "a_DQ<39>"   		LOC = "A29";
+#NET "a_DQS<9>"   		LOC = "B27";  //a_DQS<4> on the board
+#NET "a_DQS_L<9>" 		LOC = "A26";
+#
+#NET "a_DQ<40>"    		LOC = "A24";  //bank 23
+#NET "a_DQ<41>"    		LOC = "B25";
+#NET "a_DQ<42>"    		LOC = "C25";
+#NET "a_DQ<43>"    		LOC = "D26";
+#NET "a_DQS<10>"   		LOC = "B26";  //a_DQS<13> on the board
+#NET "a_DQS_L<10>" 		LOC = "A25";
+#		
+#NET "a_DQ<44>"    		LOC = "B22"; //bank 23 Called CB0-CB3 on the board
+#NET "a_DQ<45>"    		LOC = "A23";
+#NET "a_DQ<46>"    		LOC = "B23";
+#NET "a_DQ<47>"    		LOC = "C23";
+#NET "a_DQS<11>"   		LOC = "C24"; //a_DQS<8> on the board
+#NET "a_DQS_L<11>" 		LOC = "D25"; 
+#		
+#NET "a_DQ<48>"    		LOC = "F26"; //bank 19
+#NET "a_DQ<49>"    		LOC = "G26";
+#NET "a_DQ<50>"    		LOC = "H25";
+#NET "a_DQ<51>"    		LOC = "J25";
+#NET "a_DQS<12>"   		LOC = "E28"; //a_DQS<5> on the board
+#NET "a_DQS_L<12>" 		LOC = "F28";
+#		
+#NET "a_DQ<52>"    		LOC = "F25";  //bank 19
+#NET "a_DQ<53>"    		LOC = "G25";
+#NET "a_DQ<54>"    		LOC = "H24";
+#NET "a_DQ<55>"    		LOC = "J24";
+#NET "a_DQS<13>"   		LOC = "E26";  //a_DQS<14> on the board
+#NET "a_DQS_L<13>" 		LOC = "E27";
+#		
+#NET "a_DQ<56>"    		LOC = "J27"; //bank 19
+#NET "a_DQ<57>"    		LOC = "K28";
+#NET "a_DQ<58>"    		LOC = "K27";
+#NET "a_DQ<59>"    		LOC = "L28";
+#NET "a_DQS<14>"   		LOC = "H28"; //a_DQS<15> on the board
+#NET "a_DQS_L<14>" 		LOC = "G28";
+#		
+#NET "a_DQ<60>"    		LOC = "H30";  //bank 15
+#NET "a_DQ<61>"    		LOC = "J29";
+#NET "a_DQ<62>"    		LOC = "J30";
+#NET "a_DQ<63>"    		LOC = "J31";
+#NET "a_DQS<15>"   		LOC = "K31"; //called a_DQS<6> on board
+#NET "a_DQS_L<15>" 		LOC = "L31";
+#		
+#NET "a_DQ<64>"    		LOC = "L29"; //bank 15
+#NET "a_DQ<65>"    		LOC = "M30";
+#NET "a_DQ<66>"    		LOC = "R27";
+#NET "a_DQ<67>"    		LOC = "T29";
+#NET "a_DQS<16>"   		LOC = "P31";  //a_DQS<7> on the board
+#NET "a_DQS_L<16>" 		LOC = "P30";
+#
+#NET "a_DQ<68>"    		LOC = "L30";  //bank 15
+#NET "a_DQ<69>"    		LOC = "R26";
+#NET "a_DQ<70>"    		LOC = "R31";
+#NET "a_DQ<71>"    		LOC = "T31";
+#NET "a_DQS<17>"   		LOC = "M31";  //a_DQS<16> on the board
+#NET "a_DQS_L<17>" 		LOC = "N30";
+#
+## Controller B ========================================================
+#
+##NET "*RingReset*" TIG;
+##NET "switchClock" TIG;
+#
+##NET "CLKBP" TNM_NET =  "CLKBP";
+##TIMESPEC "TS_CLKBP" = PERIOD "CLKBP" 10.0 ns HIGH 50%;
+#
+##NET "CLKBN" TNM_NET =  "CLKBN";
+##TIMESPEC "TS_CLKBN" = PERIOD "CLKBN" 10.0 ns HIGH 50%;
+#
+#NET "LEDs<0>" 		LOC = "AH13" | IOSTANDARD = LVCMOS25;  //0-3 are in bank 4 (2/5V bank)
+#NET "LEDs<1>" 		LOC = "AG21" | IOSTANDARD = LVCMOS25;
+##NET "LEDs<2>" 		LOC = "AG20" | IOSTANDARD = LVCMOS25;
+#NET "LED_FP" 		LOC = "L16"  | IOSTANDARD = LVCMOS33;
+#NET "OTPIN" 		LOC = "AH22" | IOSTANDARD = LVCMOS25;
+#
+##NET "CLKBP" IOSTANDARD = LVDS_25;
+##NET "CLKBP" LOC = "AH15"; //100 MHz
+##NET "CLKBN" IOSTANDARD = LVDS_25;
+##NET "CLKBN" LOC = "AG15";
+#
+#NET "FPGA_Reset" 		LOC = "AG22" | IOSTANDARD = LVCMOS25;
+#NET "Global_Reset" 		LOC = "AH14" | IOSTANDARD = LVCMOS25;
+##NET "TxD" 				LOC = "H22"  | IOSTANDARD = LVCMOS33;
+##NET "RxD" 				LOC = "H23"  | IOSTANDARD = LVCMOS33;
+#NET "SCL" 				LOC = "AE12" | IOSTANDARD = LVCMOS33;
+#NET "SDA" 				LOC = "AF23" | IOSTANDARD = LVCMOS33;
+#
+#NET "b_DQ<*>" 			IOSTANDARD = SSTL18_II_DCI;
+#NET "b_DQS<*>" 			IOSTANDARD = DIFF_SSTL18_II;
+#NET "b_DQS_L<*>" 		IOSTANDARD = DIFF_SSTL18_II;
+#NET "b_DIMMCK<*>" 		IOSTANDARD = DIFF_SSTL18_II;
+#NET "b_DIMMCKL<*>" 		IOSTANDARD = DIFF_SSTL18_II;
+#NET "b_A<*>" 			IOSTANDARD = SSTL18_II;
+#NET "b_RAS" 			IOSTANDARD = SSTL18_II;
+#NET "b_CAS" 			IOSTANDARD = SSTL18_II;
+#NET "b_WE" 				IOSTANDARD = SSTL18_II;
+#NET "b_BA<*>" 			IOSTANDARD = SSTL18_II;
+#NET "b_RS<*>" 			IOSTANDARD = SSTL18_II;
+#NET "b_ODT<*>" 			IOSTANDARD = SSTL18_II;
+#
+#NET "b_ClkEn" 			LOC =  "AF6" | IOSTANDARD = SSTL18_II;
+#NET "b_DIMMreset" 		LOC = "AE18" | IOSTANDARD = LVCMOS25; //DDR2B_RESET_B
+#
+#NET "b_DIMMCK<0>" 		LOC = "AL19";
+#NET "b_DIMMCKL<0>" 		LOC = "AL20";
+#NET "b_DIMMCK<1>" 		LOC = "AJ19";
+#NET "b_DIMMCKL<1>" 		LOC = "AK19";
+#
+#NET "b_A<0>" 			LOC = "AK22";
+#NET "b_A<1>" 			LOC = "AM21";
+#NET "b_A<2>" 			LOC = "AP21";
+#NET "b_A<3>" 			LOC = "AP20";
+#NET "b_A<4>" 			LOC = "AN20";
+#NET "b_A<5>" 			LOC = "AN19";
+#NET "b_A<6>" 			LOC = "AP19";
+#NET "b_A<7>" 			LOC = "AM20";
+#NET "b_A<8>" 			LOC = "AN18";
+#NET "b_A<9>" 			LOC = "AM18";
+#NET "b_A<10>" 			LOC = "AJ22";
+#NET "b_A<11>" 			LOC = "AJ20";
+#NET "b_A<12>" 			LOC = "AK18";
+#NET "b_A<13>" 			LOC = "AP31";
+#
+#NET "b_BA<0>" 			LOC = "AA30";
+#NET "b_BA<1>" 			LOC = "AH23";
+#NET "b_BA<2>" 			LOC = "AD9";
+#
+#NET "b_RAS" 			LOC = "AG28"; 
+#NET "b_CAS" 			LOC = "AP30";  
+#NET "b_WE"  			LOC = "AN30";  
+#
+#NET "b_RS<0>"  			LOC = "AN29";  
+#NET "b_RS<1>"  			LOC = "AM31"; 
+#NET "b_RS<2>"  			LOC = "AL29";
+#NET "b_RS<3>"  			LOC = "AL31";
+#NET "b_ODT<0>" 			LOC = "AM30";
+#NET "b_ODT<1>" 			LOC = "AL30";
+#
+###DQ/DQS Lanes
+#
+#NET "b_DQ<0>"    		LOC = "U8";   //bank 18
+#NET "b_DQ<1>"    		LOC = "V8";
+#NET "b_DQ<2>"    		LOC = "V9";
+#NET "b_DQ<3>"    		LOC = "V10";
+#NET "b_DQS<0>"   		LOC = "W6";
+#NET "b_DQS_L<0>" 		LOC = "Y6";
+#
+#NET "b_DQ<4>"    		LOC = "W10";   //bank 18
+#NET "b_DQ<5>"    		LOC = "W9";
+#NET "b_DQ<6>"    		LOC = "W11";
+#NET "b_DQ<7>"    		LOC = "Y11";
+#NET "b_DQS<1>"   		LOC = "W7"; //b_DQS<9> on the board
+#NET "b_DQS_L<1>" 		LOC = "V7";
+#
+#NET "b_DQ<8>"    		LOC = "AD6";    //bank 18
+#NET "b_DQ<9>"    		LOC = "AE6";
+#NET "b_DQ<10>"   		LOC = "AJ7";
+#NET "b_DQ<11>"   		LOC = "AJ6";
+#NET "b_DQS<2>"   		LOC = "AG5";  //b_DQS<10> on the board
+#NET "b_DQS_L<2>" 		LOC = "AF5";
+#
+#NET "b_DQ<12>" 			LOC = "AC9";   //bank 22
+#NET "b_DQ<13>" 			LOC = "AC10";
+#NET "b_DQ<14>" 			LOC = "AE11";
+#NET "b_DQ<15>" 			LOC = "AF9";
+#NET "b_DQS<3>" 			LOC = "AD10";  //b_DQS<1> on the board
+#NET "b_DQS_L<3>" 		LOC = "AD11";
+#
+#NET "b_DQ<16>" 			LOC = "AK9"; //bank 22
+#NET "b_DQ<17>" 			LOC = "AJ10";
+#NET "b_DQ<18>" 			LOC = "AN14";
+#NET "b_DQ<19>" 			LOC = "AN13";
+#NET "b_DQS<4>" 			LOC = "AK11"; //b_DQS<2> on the board
+#NET "b_DQS_L<4>" 		LOC = "AJ11";
+#
+#NET "b_DQ<20>" 			LOC = "AM13";  //bank 22
+#NET "b_DQ<21>" 			LOC = "AM12";
+#NET "b_DQ<22>" 			LOC = "AM11";
+#NET "b_DQ<23>" 			LOC = "AP12";
+#NET "b_DQS<5>" 			LOC = "AL11";  //b_DQS<11> on the board
+#NET "b_DQS_L<5>" 		LOC = "AL10";
+#
+#NET "b_DQ<24>" 			LOC = "AK12";  //bank 6
+#NET "b_DQ<25>" 			LOC = "AJ12";
+#NET "b_DQ<26>" 			LOC = "AL13";
+#NET "b_DQ<27>" 			LOC = "AK13";
+#NET "b_DQS<6>" 			LOC = "AK16";  //b_DQS<3> on the board
+#NET "b_DQS_L<6>" 		LOC = "AL16";
+#
+#NET "b_DQ<28>" 			LOC = "AK14"; //bank 6
+#NET "b_DQ<29>" 			LOC = "AJ14";
+#NET "b_DQ<30>" 			LOC = "AP16";
+#NET "b_DQ<31>" 			LOC = "AM16";
+#NET "b_DQS<7>" 			LOC = "AJ16"; //b_DQS<12> on the board
+#NET "b_DQS_L<7>" 		LOC = "AJ15";
+#
+#NET "b_DQ<32>" 			LOC = "AH24";  //bank 6. Called CB4-CB7 on the board
+#NET "b_DQ<33>" 			LOC = "AJ24";
+#NET "b_DQ<34>" 			LOC = "AK23";
+#NET "b_DQ<35>" 			LOC = "AK24";
+#NET "b_DQS<8>" 			LOC = "AL21";  //b_DQS<17> on the board
+#NET "b_DQS_L<8>" 		LOC = "AK21";
+#
+#NET "b_DQ<36>" 			LOC = "AM28"; //bank 25. b_DQ32-35 ON CONNECTOR
+#NET "b_DQ<37>" 			LOC = "AM27";
+#NET "b_DQ<38>" 			LOC = "AN28";
+#NET "b_DQ<39>" 			LOC = "AP29";
+#NET "b_DQS<9>" 			LOC = "AM26";  //b_DQS<4> on the board
+#NET "b_DQS_L<9>" 		LOC = "AL26";
+#
+#NET "b_DQ<40>" 			LOC = "AM25";  //bank 25. b_DQ36-39 ON CONNECTOR
+#NET "b_DQ<41>" 			LOC = "AN25";
+#NET "b_DQ<42>" 			LOC = "AP27";
+#NET "b_DQ<43>" 			LOC = "AN27";
+#NET "b_DQS<10>"		 	LOC = "AP26";  //b_DQS<13> on the board
+#NET "b_DQS_L<10>" 		LOC = "AP25";
+#
+#NET "b_DQ<44>" 			LOC = "AM22"; //bank 25. Called CB0-CB3 on the board
+#NET "b_DQ<45>" 			LOC = "AN22";
+#NET "b_DQ<46>" 			LOC = "AP22";
+#NET "b_DQ<47>" 			LOC = "AN23";
+#NET "b_DQS<11>"			LOC = "AL25"; //b_DQS<8> on the board
+#NET "b_DQS_L<11>" 		LOC = "AL24";
+#
+#NET "b_DQ<48>" 			LOC = "AK27"; //bank 21. b_DQ40-43 ON CONNECTOR
+#NET "b_DQ<49>" 			LOC = "AG25";
+#NET "b_DQ<50>" 			LOC = "AH28";
+#NET "b_DQ<51>" 			LOC = "AG27";
+#NET "b_DQS<12>"			LOC = "AH27"; //b_DQS<5> on the board
+#NET "b_DQS_L<12>" 		LOC = "AJ26";
+#
+#NET "b_DQ<52>" 			LOC = "AF24";  //bank 21. b_DQ44-47 ON CONNECTOR
+#NET "b_DQ<53>" 			LOC = "AF25";
+#NET "b_DQ<54>" 			LOC = "AF26";
+#NET "b_DQ<55>" 			LOC = "AF28";
+#NET "b_DQS<13>"			LOC = "AK26";  //b_DQS<14> on the board
+#NET "b_DQS_L<13>" 		LOC = "AJ27";
+#
+#NET "b_DQ<56>" 			LOC = "AE24"; //bank 21. b_DQ52-55 ON CONNECTOR
+#NET "b_DQ<57>" 			LOC = "AE26";
+#NET "b_DQ<58>" 			LOC = "AE28";
+#NET "b_DQ<59>" 			LOC = "AE27";
+#NET "b_DQS<14>"			LOC = "AK29"; //b_DQS<15> on the board
+#NET "b_DQS_L<14>" 		LOC = "AJ29";
+#
+#NET "b_DQ<60>" 			LOC = "W24";  //bank 17. b_DQ48-51 ON CONNECTOR
+#NET "b_DQ<61>" 			LOC = "V24";
+#NET "b_DQ<62>" 			LOC = "W25";
+#NET "b_DQ<63>" 			LOC = "V25";
+#NET "b_DQS<15>"			LOC = "AB30"; //called b_DQS<6> on board
+#NET "b_DQS_L<15>" 		LOC = "AC30";
+#
+#NET "b_DQ<64>" 			LOC = "W26"; //bank 17. b_DQ56-59 ON CONNECTOR
+#NET "b_DQ<65>" 			LOC = "W27";
+#NET "b_DQ<66>" 			LOC = "V30";
+#NET "b_DQ<67>" 			LOC = "V28";
+#NET "b_DQS<16>"			LOC = "Y28";  //b_DQS<7> on the board
+#NET "b_DQS_L<16>" 		LOC = "Y29";
+#
+#NET "b_DQ<68>" 			LOC = "AD30";  //bank 17. b_DQ60-63 ON CONNECTOR
+#NET "b_DQ<69>" 			LOC = "AD29";
+#NET "b_DQ<70>" 			LOC = "Y31";
+#NET "b_DQ<71>" 			LOC = "W31";
+#NET "b_DQS<17>"			LOC = "AB31";  //b_DQS<16> on the board
+#NET "b_DQS_L<17>" 		LOC = "AA31";
