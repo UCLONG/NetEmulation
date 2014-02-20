@@ -8,33 +8,11 @@
 
 `include "ENoC_Config.sv"
 
-/*
-module synthesis_wrap
-
-
- (input  logic clk, rst,
-  
-  input  packet_t pkt_in,
-  
-  output packet_t pkt_out);
-  
-  ENoC_Network
-    inst_ENoC_Network (.clk,
-                       .reset_n(rst),
-                       .i_data(pkt_in),
-                       .i_data_val(1'b1),
-                       .o_en(),
-                       .o_data(pkt_out),
-                       .o_data_val(),
-                       .i_en(1'b1));
-endmodule
-*/
-
 module synthesis_wrap
 
  (input logic clk, reset_n,
   
-  input packet_t i_data,
+  input  packet_t i_data,
   
   output packet_t o_data);
   

@@ -16,10 +16,10 @@ module ENoC_RouteCalculator
     parameter X_NODES, // Number of node columns
     parameter Y_NODES, // Number of node rows
     parameter X_LOC,   // Current location on the X axis
-    parameter Y_LOC,   // Current location on the Y axis
+    parameter Y_LOC    // Current location on the Y axis
   `else
     parameter NODES,   // Number of nodes
-    parameter LOC,     // Current location
+    parameter LOC      // Current location
   `endif
   )
   
@@ -39,6 +39,8 @@ module ENoC_RouteCalculator
     input  logic                     i_val,         // Valid destination
   
     output logic               [0:4] o_output_req); // One-hot request for the [c,n,e,s,w] output port
+	 
+	        logic               [0:4] l_output_req;
   
   `ifdef MESH
   

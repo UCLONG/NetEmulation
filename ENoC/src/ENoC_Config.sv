@@ -77,4 +77,4 @@ typedef struct packed {
   logic VA; // Virtual Channel Allocation
   logic SA; // Switch Allocation
   logic ST; // Switch Traversal
-} pipe_line
+} pipe_line;

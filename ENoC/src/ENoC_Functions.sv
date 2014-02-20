@@ -4,7 +4,7 @@
 // Functions   : log2(input int n); - calculates the number of bits required to represent an integer as binary
 // --------------------------------------------------------------------------------------------------------------------
 
-function int log2(input int n);
+function integer log2(input int n);
   begin
     log2 = 0;     // log2 is zero to start
     n--;          // decrement 'n'

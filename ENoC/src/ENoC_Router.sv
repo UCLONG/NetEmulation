@@ -57,10 +57,12 @@ module ENoC_Router
          logic    [0:M-1][0:N-1] l_output_grant; // Grant from SwitchControl, used to control switch and FIFOs
          
          // Pipe Line Control
-         pipe_line       [0:N-1] ce;
+         logic                   ce;
          
   // Pipe Line Control.  Signals are used as clock enable in pipelined designs that do not use speculative speed up.
   // ------------------------------------------------------------------------------------------------------------------
+ 
+  assign ce = 1'b1;
  
   // WILL INSERT PL CONTROL HERE ONCE COMPLETED
 
