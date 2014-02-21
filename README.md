@@ -15,6 +15,31 @@ Each folder contains a README.md file.  This is a file written in the markdown f
 
 ## Sub Folders ##
 
+### BEE3_top ###
+
+>**DESCRIPTION :** Files for the BEE3 cube FPGA in the connect lab
+**NOTES :** 
+
+### ENoC ###
+
+>**DESCRIPTION :** Electrical Network on Chip Code
+**NOTES :** 
+
+### LIB ###
+
+>**DESCRIPTION :** Library Files
+**NOTES :** Includes arbitrators, FIFOs etc.  Be careful when changing files as they may be used by multiple networks.
+
+### NEMU ###
+
+>**DESCRIPTION :** NetEmulation Code
+**NOTES :** 
+
+### SO ###
+
+>**DESCRIPTION :** Simple Optical Network Code
+**NOTES :** 
+
 ### v1_2 ###
 
 >**DESCRIPTION :** Copy of the code taken from collab.ee.ucl.ac.uk on 08/10/2013  
