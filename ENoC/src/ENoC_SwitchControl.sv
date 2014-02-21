@@ -10,8 +10,8 @@
 
 module ENoC_SwitchControl
 
-#(parameter N, // Number of inputs
-  parameter M) // Number of outputs
+#(parameter integer N, // Number of inputs
+  parameter integer M) // Number of outputs
 
  (input  logic clk,
   input  logic ce,

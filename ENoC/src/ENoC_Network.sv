@@ -13,15 +13,15 @@
 module ENoC_Network
 
 #(`ifdef XY
-    parameter X_NODES = `X_NODES,           // Number of node columns
-    parameter Y_NODES = `Y_NODES,           // Number of node rows
-    parameter NODES   = `X_NODES*`Y_NODES,  // Total number of nodes
-    parameter ROUTERS = `NODES,
-    parameter DEGREE  = 5,
+    parameter integer X_NODES = `X_NODES,           // Number of node columns
+    parameter integer Y_NODES = `Y_NODES,           // Number of node rows
+    parameter integer NODES   = `X_NODES*`Y_NODES,  // Total number of nodes
+    parameter integer ROUTERS = `NODES,
+    parameter integer DEGREE  = 5,
   `else
-    parameter NODES  = `NODES,              // Total number of nodes
+    parameter integer NODES  = `NODES,              // Total number of nodes
   `endif
-  parameter INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH) // Depth of input buffering
+  parameter integer INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH) // Depth of input buffering
 
  (input  logic    clk, reset_n,
   

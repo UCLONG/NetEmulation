@@ -16,17 +16,17 @@
 module ENoC_Router
 
 #(`ifdef XY
-    parameter X_NODES,         // Total number of nodes on the X axis of the Mesh
-    parameter Y_NODES,         // Total number of nodes on the Y axis of the Mesh 
-    parameter X_LOC,           // Current node location on the X axis of the Mesh
-    parameter Y_LOC,           // Current node location on the Y axis of the Mesh
+    parameter integer X_NODES,         // Total number of nodes on the X axis of the Mesh
+    parameter integer Y_NODES,         // Total number of nodes on the Y axis of the Mesh 
+    parameter integer X_LOC,           // Current node location on the X axis of the Mesh
+    parameter integer Y_LOC,           // Current node location on the Y axis of the Mesh
   `else
-    parameter NODES,           // Total number of nodes
-    parameter LOC,             // Current node
+    parameter integer NODES,           // Total number of nodes
+    parameter integer LOC,             // Current node
   `endif
-  parameter INPUT_QUEUE_DEPTH, // Depth of input queues
-  parameter N,                 // Number of input ports.
-  parameter M)                 // Number of output ports.
+  parameter integer INPUT_QUEUE_DEPTH, // Depth of input queues
+  parameter integer N,                 // Number of input ports.
+  parameter integer M)                 // Number of output ports.
  
  (input logic clk, reset_n,
   
@@ -137,6 +137,7 @@ module ENoC_Router
                                       // Delete commented code once packet_t is sorted
                                       //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
                                       //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      // Correct code below
                                       .i_x_dest(l_data[i].x_dest),
                                       .i_y_dest(l_data[i].y_dest),
                                     `else

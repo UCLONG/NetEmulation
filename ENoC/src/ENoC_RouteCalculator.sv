@@ -13,13 +13,13 @@
 module ENoC_RouteCalculator
 
 #(`ifdef XY
-    parameter X_NODES, // Number of node columns
-    parameter Y_NODES, // Number of node rows
-    parameter X_LOC,   // Current location on the X axis
-    parameter Y_LOC    // Current location on the Y axis
+    parameter integer X_NODES, // Number of node columns
+    parameter integer Y_NODES, // Number of node rows
+    parameter integer X_LOC,   // Current location on the X axis
+    parameter integer Y_LOC    // Current location on the Y axis
   `else
-    parameter NODES,   // Number of nodes
-    parameter LOC      // Current location
+    parameter integer NODES,   // Number of nodes
+    parameter integer LOC      // Current location
   `endif
   )
   
