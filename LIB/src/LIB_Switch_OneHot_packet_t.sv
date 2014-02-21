@@ -21,13 +21,14 @@ module LIB_Switch_OneHot_packet_t
   
   output packet_t        [0:M-1] o_data); // Data out
   
-         packet_t        [0:M-1] l_data;
+         packet_t        [0:M-1] l_data;  // Used for pipe lining
 
-  // Crossbar Switch.  Mux selection is onehot.  
+  // Crossbar Switch.  Input selection is onehot.  
   // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
     l_data = 'z;
     for(int i=0; i<M; i++) begin
+      // compare i_sel with a one hot word to determine which input is required
       for(int j=0; j<N; j++) begin
         if(i_sel[i] == (1<<(N-1)-j)) l_data[i] = i_data[j];
       end

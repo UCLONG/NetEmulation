@@ -69,7 +69,9 @@ module ENoC_Router
   `ifdef LOAD_BALANCE
   
     // Load Balancing.  Input data is assigned a random router input channel by inserting a crossbar between the
-    // upstream bus and the input channels.
+    // upstream bus and the input channels.  The following code describes an NxN crossbar for each input connection.  
+    // The variable i references each output of the crossbar, and the variable j references the inputs.  Each output 
+    // has a onehot select vector that determines which input will be switched to the corresponding output.
     // ----------------------------------------------------------------------------------------------------------------
     always_comb begin
       l_i_data = 'z;
@@ -103,7 +105,7 @@ module ENoC_Router
   
   `else
   
-    // No Load Balancing, connect the inputs directly
+    // No Load Balancing, connect the inputs directly to corresponding input channel
     // ----------------------------------------------------------------------------------------------------------------
   
     assign l_i_data     = i_data;
@@ -114,30 +116,15 @@ module ENoC_Router
 
   `ifdef VOQ
   
-    // Virtual Output Queue.  Five input FIFOs for each switch input.  The route calculation is performed on the packet
-    // incoming to the router from the upstream router, the result of this calculation is used to decide which virtual
-    // channel the incoming packet will be stored in.  The virtual channels output a word according to which FIFOs have
-    // valid data.  This is used by the switch control for arbitration.
+    // Virtual Output Queue.  One input FIFO (virtual channel) for each output, at each input switch.  The route 
+    // calculation is performed on the incoming packet from the upstream router, the result of this calculation is used 
+    // to decide which virtual channel the incoming packet will be stored in.  The VOQ modules output a word according 
+    // to which virtual channels have valid data.  This output is used by the switch control for arbitration.
     // ----------------------------------------------------------------------------------------------------------------
 
-         logic    [0:N-1][0:M-1] l_vc_req; // Connects the output request of the Route Calc to a VC
-         logic    [0:N-1][0:M-1] l_en;     // Connects switch control enable output to VCs
+         logic    [0:N-1][0:M-1] l_vc_req; // Connects the output request of the Route Calc to a VOQ
+         logic    [0:N-1][0:M-1] l_en;     // Connects switch control enable output to VOQs
          genvar                  i;
-    
-    generate
-      for(i=0; i<N; i++) begin : GENERATE_VOQ
-        LIB_VOQ #(.M(M), .DEPTH(INPUT_QUEUE_DEPTH))
-          gen_LIB_VOQ (.clk,
-                       .ce,
-                       .reset_n,
-                       .i_data(l_i_data[i]),         // Single input data from upstream router
-                       .i_data_val(l_vc_req[i]),     // Valid from routecalc corresponds to required VC
-                       .o_en(l_o_en[i]),             // Single enable signal to the upstream router
-                       .o_data(l_data[i]),           // Single output data to switch
-                       .o_data_val(l_output_req[i]), // Packed request word to SwitchControl
-                       .i_en(l_en[i]));              // Packed grant word from SwitchControl
-      end
-    endgenerate
     
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS    
@@ -156,7 +143,22 @@ module ENoC_Router
                                       .i_dest(l_data[i].dest),
                                     `endif
                                     .i_val(l_i_data_val[i]),      // From upstream router
-                                    .o_output_req(l_vc_req[i]));  // To Switch Control
+                                    .o_output_req(l_vc_req[i]));  // To VOQ module
+      end
+    endgenerate
+    
+    generate
+      for(i=0; i<N; i++) begin : GENERATE_VOQ
+        LIB_VOQ #(.M(M), .DEPTH(INPUT_QUEUE_DEPTH))
+          gen_LIB_VOQ (.clk,
+                       .ce,
+                       .reset_n,
+                       .i_data(l_i_data[i]),         // Single input data from upstream router
+                       .i_data_val(l_vc_req[i]),     // Valid from routecalc corresponds to required VC
+                       .o_en(l_o_en[i]),             // Single enable signal to the upstream router
+                       .o_data(l_data[i]),           // Single output data to switch
+                       .o_data_val(l_output_req[i]), // Packed request word to SwitchControl
+                       .i_en(l_en[i]));              // Packed grant word from SwitchControl
       end
     endgenerate
     
@@ -222,21 +224,23 @@ module ENoC_Router
       end
     endgenerate
     
-    // indicate to input FIFOs, according to arbitration results, that data will be read.
+    // indicate to input FIFOs, according to arbitration results, that data will be read. Enable is high if any of the 
+    // output_grants indicate they have accepted an input.  This creates one N bit word, which is the logical 'or' of
+    // all the output_grants, as each output_grant is an N-bit onehot vector representing a granted input.
     // ----------------------------------------------------------------------------------------------------------------
     always_comb begin
       l_en = '0;
-      for(int j=0; j<M; j++) begin
-        l_en |= l_output_grant[j];
-        // if this fails to synthesize, this is equivalent to: l_en[0:N-1] = l_en[0:N-1] | l_output_grant[j][0:N-1];
+      for(int i=0; i<N; i++) begin
+        l_en |= l_output_grant[i];
+        // if this fails to synthesize, this is equivalent to: l_en[0:N-1] = l_en[0:N-1] | l_output_grant[i][0:N-1];
       end
     end   
     
   `endif
  
-  // Switch Control receives 5, 5-bit words, each word corresponds to an input, each bit corresponds to the requested
+  // Switch Control receives N, M-bit words, each word corresponds to an input, each bit corresponds to the requested
   // output.  This is combined with the enable signal from the downstream router, then arbitrated.  The result is
-  // 5, 5-bit words each word corresponding to an output, each bit corresponding to an input (note the transposition).
+  // M, N-bit words each word corresponding to an output, each bit corresponding to an input (note the transposition).
   // ------------------------------------------------------------------------------------------------------------------  
   ENoC_SwitchControl #(.N(N), .M(M))
     inst_ENoC_SwitchControl (.clk,
@@ -255,7 +259,8 @@ module ENoC_Router
                                      .o_data(o_data));       // To the downstream routers
   
 
-  // Output to downstream routers that the switch data is valid
+  // Output to downstream routers that the switch data is valid.  l_output_grant[output number] is a onehot vector, thus
+  // if any of the bits are high the output referenced by [output number] has valid data.
   // ------------------------------------------------------------------------------------------------------------------                      
   always_comb begin
   o_data_val = '0;

@@ -5,14 +5,17 @@
 // Description : Configuration file for Electronic Network on Chip.  See individual headers for information.
 // --------------------------------------------------------------------------------------------------------------------
 
+`include "ENoC_Functions.sv" // Defines log2 function.  Should only be included in one file per scope.  Will screw up
+                             // simulation or synthesis
+
 // --------------------------------------------------------------------------------------------------------------------
 // Network Design Constants.  Sets parameter values which can be overridden when modules are instantiated.
 // --------------------------------------------------------------------------------------------------------------------
-`define NODES   9           // Total number of nodes - not considered for mesh/torus
-`define X_NODES 3           // Number of node columns - only considered for mesh/torus
-`define Y_NODES 3           // Number of node rows - only considered for mesh/torus
-`define PAYLOAD 32          // Size of the data packet
-`define INPUT_QUEUE_DEPTH 8 // Packet depth of input queues
+`define NODES   64           // Total number of nodes - not considered for mesh/torus
+`define X_NODES 8           // Number of node columns - only considered for mesh/torus
+`define Y_NODES 8           // Number of node rows - only considered for mesh/torus
+`define PAYLOAD 8           // Size of the data packet
+`define INPUT_QUEUE_DEPTH 4 // Packet depth of input queues
 
 // --------------------------------------------------------------------------------------------------------------------
 // Network Topology.  Only uncomment a single type.
@@ -24,42 +27,62 @@
 //`define RING
 
 // Crude 'or' function.  Configurations common to both MESH and TORUS can ifdef XY
-`ifdef MESH
-  `define XY
+`ifdef MESH  
+  `define XY 
 `endif
-`ifdef TORUS
-  `define XY
+`ifdef TORUS 
+  `define XY 
 `endif
 
 // --------------------------------------------------------------------------------------------------------------------
 // Router Architecture. Uncomment to add functionality.
 // --------------------------------------------------------------------------------------------------------------------
+
+// ------ Complete ---------
+
 // `define LOAD_BALANCE // adds a rotating crossbar between the input ports of the router, and the input channels
+// `define VOQ          // adds virtual output queues
+// `define iSLIP        // Standard VOQ allocation is Round Robin, uncomment for iSLIP.
+
+// ------ Incomplete -------
+
 // `define PIPE_LINE_RC // adds a register stage after route calculation
 // `define PIPE_LINE_VA // adds a register stage after virtual channel allocation
 // `define PIPE_LINE_SA // adds a register stage after switch allocation
 // `define PIPE_LINE_ST // adds a register stage after the crossbar switch at the router output
 // `define ADAPTIVE     // enables adaptive routing algorithms
-// `define VOQ          // adds virtual output queues
-// `define iSLIP        // Standard allocation is Round Robin, uncomment for iSLIP.
+
+// Crude 'or' function.  Configurations that use pipeline can ifdef PIPE_LINE
+`ifdef PIPE_LINE_RC 
+  `define PIPE_LINE 
+`endif
+`ifdef PIPE_LINE_VA 
+  `define PIPE_LINE
+`endif
+`ifdef PIPE_LINE_SA 
+  `define PIPE_LINE
+`endif
+`ifdef PIPE_LINE_ST 
+  `define PIPE_LINE
+`endif
 
 // --------------------------------------------------------------------------------------------------------------------
 // Type Definitions.
 // --------------------------------------------------------------------------------------------------------------------
 
-`ifdef XY
+// `ifdef XY
 
   // Network packet type for xy addressed designs (Mesh/Torus)
-  typedef struct packed {
-    logic [`PAYLOAD-1:0] data;
-    logic [log2(`X_NODES)-1:0] x_source;
-    logic [log2(`Y_NODES)-1:0] y_source;
-    logic [log2(`X_NODES)-1:0] x_dest;
-    logic [log2(`Y_NODES)-1:0] y_dest;
-    logic valid;
-  } packet_t;
+//  typedef struct packed {
+//    logic [`PAYLOAD-1:0] data;
+//    logic [log2(`X_NODES)-1:0] x_source;
+//    logic [log2(`Y_NODES)-1:0] y_source;
+//    logic [log2(`X_NODES)-1:0] x_dest;
+//   logic [log2(`Y_NODES)-1:0] y_dest;
+//    logic valid;
+//  } packet_t;
 
-`else
+// `else
 
   // Network packet type for simple addressed designs
   typedef struct packed {
@@ -69,12 +92,24 @@
     logic valid;
   } packet_t;
 
-`endif
+// `endif
 
-// Pipeline Control type
-typedef struct packed {
-  logic RC; // Route calculation
-  logic VA; // Virtual Channel Allocation
-  logic SA; // Switch Allocation
-  logic ST; // Switch Traversal
-} pipe_line;
+`ifdef PIPE_LINE
+
+  // Pipeline Control type, can be used for state machine, clock control etc
+  typedef struct packed {
+  `ifdef PIPE_LINE_RC  
+    logic RC; // Route calculation
+  `endif 
+  `ifdef PIPE_LINE_VA  
+    logic VA; // Virtual Channel Allocation
+  `endif 
+  `ifdef PIPE_LINE_SA
+    logic SA; // Switch Allocation
+  `endif 
+  `ifdef PIPE_LINE_ST  
+    logic ST; // Switch Traversal
+  `endif 
+  } pipe_line;
+  
+`endif

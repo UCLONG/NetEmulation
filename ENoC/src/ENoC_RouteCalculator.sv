@@ -71,7 +71,7 @@ module ENoC_RouteCalculator
       
     `else
     
-      // Torus Dimension Ordered Routing. WRONG
+      // Torus Dimension Ordered Routing.
       // --------------------------------------------------------------------------------------------------------------
       always_comb begin
         l_output_req = '0;
