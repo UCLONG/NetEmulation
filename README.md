@@ -17,27 +17,27 @@ Each folder contains a README.md file.  This is a file written in the markdown f
 
 ### BEE3_top ###
 
->**DESCRIPTION :** Files for the BEE3 cube FPGA in the connect lab
+>**DESCRIPTION :** Files for the BEE3 cube FPGA in the connect lab  
 **NOTES :** 
 
 ### ENoC ###
 
->**DESCRIPTION :** Electrical Network on Chip Code
+>**DESCRIPTION :** Electrical Network on Chip Code  
 **NOTES :** 
 
 ### LIB ###
 
->**DESCRIPTION :** Library Files
+>**DESCRIPTION :** Library Files  
 **NOTES :** Includes arbitrators, FIFOs etc.  Be careful when changing files as they may be used by multiple networks.
 
 ### NEMU ###
 
->**DESCRIPTION :** NetEmulation Code
+>**DESCRIPTION :** NetEmulation Code  
 **NOTES :** 
 
 ### SO ###
 
->**DESCRIPTION :** Simple Optical Network Code
+>**DESCRIPTION :** Simple Optical Network Code  
 **NOTES :** 
 
 ### v1_2 ###
