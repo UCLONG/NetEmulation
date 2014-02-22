@@ -4,15 +4,14 @@
 // This file defines the top level parameters for FPGA emulation
 // of networks on chip
 
-`include "functions.sv";
+`include "functions.sv"
 
 // Network parameters 
-`define X_PORTS       2        
-`define Y_PORTS       2
-`define PORTS                     (`X_PORTS * `Y_PORTS)
-`define FIFO_DEPTH                 8
-`define PAYLOAD                   64        // Packet payload in bits
-`define PKT_SIZE                  (`PAYLOAD+(2*log2AndRoundUp(`PORTS))+1)
+`define PORTS       4        // Currently only works with power of 2 : to be fixed
+`define FIFO_DEPTH  8
+`define PAYLOAD     64        // Packet payload in bits
+`define PKT_SIZE    (`PAYLOAD+(2*log2(`PORTS))+1)
+`define PORT_BITS   2
 
 // Optical timing parameters
 `define SLOT_SIZE   8         // For fixed slot size networks, in clock cycles
@@ -63,17 +62,10 @@
 // Define the packet structure
 typedef struct packed {
 	 logic [`PAYLOAD-1:0] data;
-	 /*
-	 logic [divideBy2andRoundUp(log2AndRoundUp(`PORTS))-1:0] source_x;
-	 logic [divideBy2andRoundUp(log2AndRoundUp(`PORTS))-1:0] source_y; */
-	 
-	 logic [log2AndRoundUp(`X_PORTS)-1:0] source_x;
-   logic [log2AndRoundUp(`Y_PORTS)-1:0] source_y;
-	 logic [log2AndRoundUp(`X_PORTS)-1:0] dest_x;
-	 logic [log2AndRoundUp(`Y_PORTS)-1:0] dest_y;
+	 logic [log2(`PORTS)-1:0] source;
+	 logic [log2(`PORTS)-1:0] dest;
 	 logic valid;
 	 //logic parity;   // to be implemented later
 	     } packet_t;
 
 // Derived parameters (do not change)
-
