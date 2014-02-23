@@ -10,37 +10,9 @@ This code was used to obtain the results in the following papers.  If you use th
 	
 (3)Watts, PM; Moore, SW; Moore, AW; (2012) Energy Implications of Photonic Networks With Speculative Transmission. JOURNAL OF OPTICAL COMMUNICATIONS AND NETWORKING , Vol. 4 (6), pp 503 - 513. 
 
-
-Each folder contains a README.md file.  This is a file written in the markdown format that describes the contents of the folder.  This file should be maintained at the same time as the code so that discrepancies do not occur.  For more information consult the [wiki](https://github.com/DannyNicholls/NetEmulation/wiki)
-
 ## Sub Folders ##
-
-### BEE3_top ###
-
->**DESCRIPTION :** Files for the BEE3 cube FPGA in the connect lab  
-**NOTES :** 
-
-### ENoC ###
-
->**DESCRIPTION :** Electrical Network on Chip Code  
-**NOTES :** 
-
-### LIB ###
-
->**DESCRIPTION :** Library Files  
-**NOTES :** Includes arbitrators, FIFOs etc.  Be careful when changing files as they may be used by multiple networks.
-
-### NEMU ###
-
->**DESCRIPTION :** NetEmulation Code  
-**NOTES :** 
-
-### SO ###
-
->**DESCRIPTION :** Simple Optical Network Code  
-**NOTES :** 
 
 ### v1_2 ###
 
 >**DESCRIPTION :** Copy of the code taken from collab.ee.ucl.ac.uk on 08/10/2013  
-**NOTES :** Appears to have duplicate files.  Will store this folder here until new file structure is in place and needed files have been copied into the new location.  No standard code.  Before taking code from this folder it should be edited to a standard format.
+**NOTES :** Appears to have duplicate files.  No standard code.

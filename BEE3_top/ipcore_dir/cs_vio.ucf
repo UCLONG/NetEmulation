@@ -1,5 +1,0 @@
-#
-#
-# Dummy D_CLK constraint since there is no CLK net
-#
-NET "ASYNC_IN(0)" TNM_NET = D_CLK ;
