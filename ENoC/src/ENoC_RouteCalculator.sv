@@ -38,20 +38,34 @@ module ENoC_RouteCalculator
   
   `ifdef MESH
 
-    // 2D Mesh Dimension Ordered Routing
-    // --------------------------------------------------------------------------------------------------------------
-    always_comb begin
-      l_output_req = '0;
-      if(i_val) begin
-        if      (i_x_dest != X_LOC) l_output_req = (i_x_dest > X_LOC) ? 5'b00100 : 5'b00001;
-        else if (i_y_dest != Y_LOC) l_output_req = (i_y_dest > Y_LOC) ? 5'b01000 : 5'b00010;
-        else                        l_output_req = 5'b10000;
+    `ifdef DORXY
+    
+      // 2D XY Mesh Dimension Ordered Routing
+      // --------------------------------------------------------------------------------------------------------------
+      always_comb begin
+        l_output_req = '0;
+        if(i_val) begin
+          if      (i_x_dest != X_LOC) l_output_req = (i_x_dest > X_LOC) ? 5'b00100 : 5'b00001;
+          else if (i_y_dest != Y_LOC) l_output_req = (i_y_dest > Y_LOC) ? 5'b01000 : 5'b00010;
+          else                        l_output_req = 5'b10000;
+        end
       end
-    end      
+
+    `elsif DORYX
+    
+      // Enter DORYX here
+    
+    `elsif ADAPTIVE1
+    
+      // Enter first adaptive routing algorithm here
+    
+    `endif
   
   `elsif CUBE
+  
+    `ifdef DORXY
     
-    // 2D Cube Dimension Ordered Routing.
+    // 2D XY Cube Dimension Ordered Routing.
     // --------------------------------------------------------------------------------------------------------------
     always_comb begin
       l_output_req = '0;
@@ -65,6 +79,16 @@ module ENoC_RouteCalculator
         end else l_output_req = 5'b10000;
       end
     end
+    
+    `elsif DORYX
+    
+      // enter DORYX here
+      
+    `elsif ADAPTIVE1
+    
+      // Enter first adaptive routing algorithm here
+      
+    `endif
   
   `endif
 

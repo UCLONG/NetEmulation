@@ -39,6 +39,13 @@
 // `define iSLIP        // Standard VOQ allocation is Round Robin, uncomment for iSLIP.
 
 // --------------------------------------------------------------------------------------------------------------------
+// Routing Method. Only uncomment a single type
+// --------------------------------------------------------------------------------------------------------------------
+`define DORXY           // Dimension ordered routing X direction first, Y direction second.
+// `define DORYX        // Dimension ordered routing Y direction first, X direction second.
+// `define ADAPTIVE1    // As yet undefined type of adaptive routing.
+
+// --------------------------------------------------------------------------------------------------------------------
 // Type Definitions.  Two types of packet depending on how the the packet is addressed
 // --------------------------------------------------------------------------------------------------------------------
 
