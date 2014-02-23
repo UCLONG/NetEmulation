@@ -17,7 +17,7 @@ module ENoC_Network
     parameter integer X_NODES = `X_NODES,           // Number of node columns
     parameter integer Y_NODES = `Y_NODES,           // Number of node rows
     parameter integer NODES   = `X_NODES*`Y_NODES,  // Total number of nodes
-    parameter integer ROUTERS = `NODES,
+    parameter integer ROUTERS = `X_NODES*`Y_NODES,
     parameter integer DEGREE  = 5,
   `else
     parameter integer NODES  = `NODES,              // Total number of nodes

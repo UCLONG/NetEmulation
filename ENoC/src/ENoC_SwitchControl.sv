@@ -91,24 +91,4 @@ module ENoC_SwitchControl
 
   `endif
 
-  // Pipe line control.
-  // ------------------------------------------------------------------------------------------------------------------
-  `ifdef PIPE_LINE_SA
-  
-    always_ff@(posedge clk) begin
-      if(~reset_n) begin
-        o_output_grant <= 0;
-      end else begin
-        if(ce) begin
-          o_output_grant <= l_output_grant;
-        end
-      end
-    end
-  
-  `else
-  
-    assign o_output_grant = l_output_grant;
-  
-  `endif
-
 endmodule

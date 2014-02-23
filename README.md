@@ -34,13 +34,3 @@ Each folder contains a README.md file.  This is a file written in the markdown f
 
 >**DESCRIPTION :** NetEmulation Code  
 **NOTES :** 
-
-### SO ###
-
->**DESCRIPTION :** Simple Optical Network Code  
-**NOTES :** 
-
-### v1_2 ###
-
->**DESCRIPTION :** Copy of the code taken from collab.ee.ucl.ac.uk on 08/10/2013  
-**NOTES :** Appears to have duplicate files.  Will store this folder here until new file structure is in place and needed files have been copied into the new location.  No standard code.  Before taking code from this folder it should be edited to a standard format.

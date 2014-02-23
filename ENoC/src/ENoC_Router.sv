@@ -56,15 +56,10 @@ module ENoC_Router
          logic    [0:N-1][0:M-1] l_output_req;   // Request sent to SwitchControl
          logic    [0:M-1][0:N-1] l_output_grant; // Grant from SwitchControl, used to control switch and FIFOs
          
-         // Pipe Line Control
+         // Clock Enable.  For those modules that require it.
          logic                   ce;
-         
-  // Pipe Line Control.  Signals are used as clock enable in pipelined designs that do not use speculative speed up.
-  // ------------------------------------------------------------------------------------------------------------------
  
   assign ce = 1'b1;
- 
-  // WILL INSERT PL CONTROL HERE ONCE COMPLETED
 
   `ifdef LOAD_BALANCE
   
@@ -134,12 +129,14 @@ module ENoC_Router
                                  .NODES(NODES), .LOC(LOC))
                                `endif
           gen_ENoC_RouteCalculator (`ifdef TORUS
-                                      // Delete commented code once packet_t is sorted
-                                      //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      // Following two lines adapt a single address into a two part address.  Will only
+                                      // work for networks where the number of nodes is a function of 2^2n where n is 
+                                      // a positive integer
+                                      .i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
                                       // Correct code below
-                                      .i_x_dest(l_data[i].x_dest),
-                                      .i_y_dest(l_data[i].y_dest),
+                                      // .i_x_dest(l_data[i].x_dest),
+                                      // .i_y_dest(l_data[i].y_dest),
                                     `else
                                       .i_dest(l_data[i].dest),
                                     `endif
