@@ -43,50 +43,34 @@ module ENoC_RouteCalculator
 	        logic               [0:4] l_output_req;
   
   `ifdef MESH
-  
-    `ifdef ADAPTIVE
-    
-      // DEFINE ADAPTIVE MESH ROUTING ALGORITHM HERE
-    
-    `else
 
-      // 2D Mesh Dimension Ordered Routing
-      // --------------------------------------------------------------------------------------------------------------
-      always_comb begin
-        l_output_req = '0;
-        if(i_val) begin
-          if      (i_x_dest != X_LOC) l_output_req = (i_x_dest > X_LOC) ? 5'b00100 : 5'b00001;
-          else if (i_y_dest != Y_LOC) l_output_req = (i_y_dest > Y_LOC) ? 5'b01000 : 5'b00010;
-          else                        l_output_req = 5'b10000;
-        end
-      end      
-
-    `endif
+    // 2D Mesh Dimension Ordered Routing
+    // --------------------------------------------------------------------------------------------------------------
+    always_comb begin
+      l_output_req = '0;
+      if(i_val) begin
+        if      (i_x_dest != X_LOC) l_output_req = (i_x_dest > X_LOC) ? 5'b00100 : 5'b00001;
+        else if (i_y_dest != Y_LOC) l_output_req = (i_y_dest > Y_LOC) ? 5'b01000 : 5'b00010;
+        else                        l_output_req = 5'b10000;
+      end
+    end      
   
   `elsif CUBE
-  
-    `ifdef ADAPTIVE
-  
-      // DEFINE ADAPTIVE TORUS ROUTING ALGORITHMS HERE
-      
-    `else
     
-      // 2D Cube Dimension Ordered Routing.
-      // --------------------------------------------------------------------------------------------------------------
-      always_comb begin
-        l_output_req = '0;
-        if(i_val) begin
-          if (i_x_dest != X_LOC) begin
-            if (i_x_dest < X_LOC) l_output_req = ((X_LOC-i_x_dest)=<(X_NODES-(X_LOC-i_x_dest))) ? 5'b00001 : 5'b00100;
-            if (i_x_dest > X_LOC) l_output_req = ((i_x_dest-X_LOC)=<(X_NODES-(i_x_dest-X_LOC))) ? 5'b00100 : 5'b00001;
-          end else if (i_y_dest != Y_LOC) begin
-            if (i_y_dest < Y_LOC) l_output_req = ((Y_LOC-i_y_dest)=<(Y_NODES-(Y_LOC-i_y_dest))) ? 5'b00010 : 5'b01000;
-            if (i_y_dest > Y_LOC) l_output_req = ((i_y_dest-Y_LOC)=<(Y_NODES-(i_y_dest-Y_LOC))) ? 5'b01000 : 5'b00010;
-          end else l_output_req = 5'b10000;
-        end
+    // 2D Cube Dimension Ordered Routing.
+    // --------------------------------------------------------------------------------------------------------------
+    always_comb begin
+      l_output_req = '0;
+      if(i_val) begin
+        if (i_x_dest != X_LOC) begin
+          if (i_x_dest < X_LOC) l_output_req = ((X_LOC-i_x_dest)=<(X_NODES-(X_LOC-i_x_dest))) ? 5'b00001 : 5'b00100;
+          if (i_x_dest > X_LOC) l_output_req = ((i_x_dest-X_LOC)=<(X_NODES-(i_x_dest-X_LOC))) ? 5'b00100 : 5'b00001;
+        end else if (i_y_dest != Y_LOC) begin
+          if (i_y_dest < Y_LOC) l_output_req = ((Y_LOC-i_y_dest)=<(Y_NODES-(Y_LOC-i_y_dest))) ? 5'b00010 : 5'b01000;
+          if (i_y_dest > Y_LOC) l_output_req = ((i_y_dest-Y_LOC)=<(Y_NODES-(i_y_dest-Y_LOC))) ? 5'b01000 : 5'b00010;
+        end else l_output_req = 5'b10000;
       end
-      
-    `endif
+    end
   
   `endif
 

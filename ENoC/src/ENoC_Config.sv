@@ -37,19 +37,18 @@
 // Router Architecture. Uncomment to add functionality.
 // --------------------------------------------------------------------------------------------------------------------
 
-// ------ Complete ---------
-
 // `define LOAD_BALANCE // adds a rotating crossbar between the input ports of the router, and the input channels
 // `define VOQ          // adds virtual output queues
 // `define iSLIP        // Standard VOQ allocation is Round Robin, uncomment for iSLIP.
 
-// ------ Incomplete -------
+// --------------------------------------------------------------------------------------------------------------------
+// Router Pipeline Stages. Uncomment to add stage.
+// --------------------------------------------------------------------------------------------------------------------
 
 // `define PIPE_LINE_RC // adds a register stage after route calculation
 // `define PIPE_LINE_VA // adds a register stage after virtual channel allocation
 // `define PIPE_LINE_SA // adds a register stage after switch allocation
 // `define PIPE_LINE_ST // adds a register stage after the crossbar switch at the router output
-// `define ADAPTIVE     // enables adaptive routing algorithms
 
 // Crude 'or' function.  Configurations that use pipeline can ifdef PIPE_LINE
 `ifdef PIPE_LINE_RC 
@@ -69,20 +68,21 @@
 // Type Definitions.
 // --------------------------------------------------------------------------------------------------------------------
 
-// `ifdef TORUS
+/* Commented because NetEmulation doesn't distinguish between network types yet
+`ifdef TORUS
 
   // Network packet type for TORUS addressed designs (Mesh/Torus)
-//  typedef struct packed {
-//    logic [`PAYLOAD-1:0] data;
-//    logic [log2(`X_NODES)-1:0] x_source;
-//    logic [log2(`Y_NODES)-1:0] y_source;
-//    logic [log2(`X_NODES)-1:0] x_dest;
-//   logic [log2(`Y_NODES)-1:0] y_dest;
-//    logic valid;
-//  } packet_t;
+  typedef struct packed {
+    logic [`PAYLOAD-1:0] data;
+    logic [log2(`X_NODES)-1:0] x_source;
+    logic [log2(`Y_NODES)-1:0] y_source;
+    logic [log2(`X_NODES)-1:0] x_dest;
+    logic [log2(`Y_NODES)-1:0] y_dest;
+    logic valid;
+  } packet_t;
 
-// `else
-
+`else
+*/
   // Network packet type for simple addressed designs
   typedef struct packed {
     logic [`PAYLOAD-1:0] data;
@@ -90,9 +90,9 @@
     logic [log2(`NODES)-1:0] dest;
     logic valid;
   } packet_t;
-
-// `endif
-
+/*
+`endif
+*/
 `ifdef PIPE_LINE
 
   // Pipeline Control type, can be used for state machine, clock control etc

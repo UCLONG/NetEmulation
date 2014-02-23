@@ -56,15 +56,22 @@ module ENoC_Router
          logic    [0:N-1][0:M-1] l_output_req;   // Request sent to SwitchControl
          logic    [0:M-1][0:N-1] l_output_grant; // Grant from SwitchControl, used to control switch and FIFOs
          
-         // Pipe Line Control
-         logic                   ce;
+         // Pipe Line Control for each input.
+         pipe_line       [0:N-1] ce;
          
   // Pipe Line Control.  Signals are used as clock enable in pipelined designs that do not use speculative speed up.
   // ------------------------------------------------------------------------------------------------------------------
  
-  assign ce = 1'b1;
- 
-  // WILL INSERT PL CONTROL HERE ONCE COMPLETED
+  // INSERT PL CONTROL HERE.
+  
+  // Pipe line could simply split the combinational path into parts.  This is almost ready.  All stages have been
+  // edited so they can be clocked using a clock enable.  All that needs to be done is the clock enables of each module
+  // connected to the respective bit of the pipe_line control ce, and a state machine to cycle through the stages.
+  
+  // Once the stages are pipelined, much greater speeds could be had by performing calculations in parallel.  It should
+  // only take minor editing to enable route calculation etc to performed every cycle, by performing on packets waiting
+  // in the queue. First thing that needs to be done is an update of the input fifos.  The fifos need to output the 
+  // address and valid not just from the packet waiting to leave the queue, but also packets further back.
 
   `ifdef LOAD_BALANCE
   
