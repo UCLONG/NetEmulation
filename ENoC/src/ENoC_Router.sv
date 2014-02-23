@@ -15,7 +15,7 @@
 
 module ENoC_Router
 
-#(`ifdef XY
+#(`ifdef TORUS
     parameter integer X_NODES,         // Total number of nodes on the X axis of the Mesh
     parameter integer Y_NODES,         // Total number of nodes on the Y axis of the Mesh 
     parameter integer X_LOC,           // Current node location on the X axis of the Mesh
@@ -128,12 +128,12 @@ module ENoC_Router
     
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS    
-        ENoC_RouteCalculator #(`ifdef XY
+        ENoC_RouteCalculator #(`ifdef TORUS
                                  .X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC))
                                `else
                                  .NODES(NODES), .LOC(LOC))
                                `endif
-          gen_ENoC_RouteCalculator (`ifdef XY
+          gen_ENoC_RouteCalculator (`ifdef TORUS
                                       // Delete commented code once packet_t is sorted
                                       //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
                                       //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
@@ -206,17 +206,17 @@ module ENoC_Router
     // ----------------------------------------------------------------------------------------------------------------
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS  
-        ENoC_RouteCalculator #(`ifdef XY
+        ENoC_RouteCalculator #(`ifdef TORUS
                                  .X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC))
                                `else
                                  .NODES(NODES), .LOC(LOC))
                                `endif 
-          gen_ENoC_RouteCalculator (`ifdef XY
-                                      // Delete commented code once packet_t is sorted
-                                      //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
-                                      .i_x_dest(l_data[i].x_dest),
-                                      .i_y_dest(l_data[i].y_dest),
+          gen_ENoC_RouteCalculator (`ifdef TORUS
+                                      // Delete uncommented code once packet_t is sorted
+                                      .i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      //.i_x_dest(l_data[i].x_dest),
+                                      //.i_y_dest(l_data[i].y_dest),
                                     `else
                                       .i_dest(l_data[i].dest),
                                     `endif

@@ -18,17 +18,21 @@ module network
   output packet_t              pkt_out [0:`NODES-1],
   output logic    [0:`NODES-1] net_full);
   
+         // NetEmulation uses packed data, ENoC uses unpacked
          // local logic to unpack data  
          packet_t [0:`NODES-1] l_pkt_in;
          packet_t [0:`NODES-1] l_pkt_out;
          
+         // NetEmulation sends the valid with the packet, ENoC has seperated data/flow control
          // Local logic to read/set valid packet
          logic    [0:`NODES-1] l_i_data_val;
          logic    [0:`NODES-1] l_o_data_val;
          
+         // NetEmulation requires a logic high when the network is full, ENoC uses a valid/enable protocol that sets
+         // the enable as logic low when it can not receive data.  Thus, the enable needs to be inverted.
          // Local logic to allow the net_full signal to be populated
          logic    [0:`NODES-1] l_o_en;
-			
+	 
   always_comb begin
     for(int i=0; i<`NODES; i++) begin
       l_pkt_in[i] = pkt_in[i];
@@ -38,6 +42,7 @@ module network
     end
   end
   
+  // Instantiate the network.  NetEmulation currently only provides `NODES.  The obvious is to choose an integer square
   ENoC_Network #(.X_NODES($sqrt(`NODES)), .Y_NODES($sqrt(`NODES)))
     inst_ENoC_Network (.clk,
                        .reset_n(~rst),
@@ -46,5 +51,5 @@ module network
                        .o_en(l_o_en),
                        .o_data(l_pkt_out),
                        .o_data_val(l_o_data_val),
-                       .i_en('1));
+                       .i_en('1)); // NetEmulation will always be able to receive the packet.
 endmodule

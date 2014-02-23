@@ -12,7 +12,7 @@
 
 module ENoC_RouteCalculator
 
-#(`ifdef XY
+#(`ifdef TORUS
     parameter integer X_NODES, // Number of node columns
     parameter integer Y_NODES, // Number of node rows
     parameter integer X_LOC,   // Current location on the X axis
@@ -23,7 +23,7 @@ module ENoC_RouteCalculator
   `endif
   )
   
- (`ifdef XY
+ (`ifdef TORUS
     input  logic [log2(X_NODES)-1:0] i_x_dest,      // Packet destination on the x axis
     input  logic [log2(Y_NODES)-1:0] i_y_dest,      // Packet destination on the Y axis
   `else
@@ -63,7 +63,7 @@ module ENoC_RouteCalculator
 
     `endif
   
-  `elsif TORUS
+  `elsif CUBE
   
     `ifdef ADAPTIVE
   
@@ -71,7 +71,7 @@ module ENoC_RouteCalculator
       
     `else
     
-      // Torus Dimension Ordered Routing.
+      // 2D Cube Dimension Ordered Routing.
       // --------------------------------------------------------------------------------------------------------------
       always_comb begin
         l_output_req = '0;

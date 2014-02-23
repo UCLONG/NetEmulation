@@ -63,13 +63,3 @@
     // Uses        : ENoC_Network.sv
     // Notes       : Need better way of fitting X_NODES and Y_NODES, currently on works for perfect square.
     // --------------------------------------------------------------------------------------------------------------------
-    
-### synthesis_wrap.sv
-
-    // --------------------------------------------------------------------------------------------------------------------
-    // IP Block    : ENoC
-    // Function    : synthesis_wrap
-    // Module name : synthesis_wrap
-    // Description : Instantiates a MESH_Network keeping top level ports to a minimum for synthesis.
-    // Uses        : synthesis_wrap.sv
-    // --------------------------------------------------------------------------------------------------------------------

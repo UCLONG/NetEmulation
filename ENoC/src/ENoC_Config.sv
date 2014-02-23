@@ -5,33 +5,32 @@
 // Description : Configuration file for Electronic Network on Chip.  See individual headers for information.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "ENoC_Functions.sv" // Defines log2 function.  Should only be included in one file per scope.  Will screw up
+ // Defines log2 function.  Should only be included in one file per scope.  Will screw up
                              // simulation or synthesis
 
 // --------------------------------------------------------------------------------------------------------------------
 // Network Design Constants.  Sets parameter values which can be overridden when modules are instantiated.
 // --------------------------------------------------------------------------------------------------------------------
-`define NODES   64           // Total number of nodes - not considered for mesh/torus
-`define X_NODES 8           // Number of node columns - only considered for mesh/torus
-`define Y_NODES 8           // Number of node rows - only considered for mesh/torus
+`define NODES   64          // Total number of nodes - not considered for mesh/torus
+`define X_NODES 8           // k(y,z,x)-ary.  Number of node columns - only considered for Torus
+`define Y_NODES 8           // k(y,z,x)-ary.  Number of node rows - only considered for Torus
 `define PAYLOAD 8           // Size of the data packet
-`define INPUT_QUEUE_DEPTH 4 // Packet depth of input queues
+`define INPUT_QUEUE_DEPTH 4 // Globally set packet depth for input queues
 
 // --------------------------------------------------------------------------------------------------------------------
 // Network Topology.  Only uncomment a single type.
 // --------------------------------------------------------------------------------------------------------------------
 `define MESH
-//`define TORUS
+//`define CUBE
 //`define BUTTERFLY
 //`define CLOS
-//`define RING
 
-// Crude 'or' function.  Configurations common to both MESH and TORUS can ifdef XY
+// Crude 'or' function.  Configurations common to both MESH and TORUS can ifdef TORUS
 `ifdef MESH  
-  `define XY 
+  `define TORUS 
 `endif
-`ifdef TORUS 
-  `define XY 
+`ifdef CUBE 
+  `define TORUS 
 `endif
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -70,9 +69,9 @@
 // Type Definitions.
 // --------------------------------------------------------------------------------------------------------------------
 
-// `ifdef XY
+// `ifdef TORUS
 
-  // Network packet type for xy addressed designs (Mesh/Torus)
+  // Network packet type for TORUS addressed designs (Mesh/Torus)
 //  typedef struct packed {
 //    logic [`PAYLOAD-1:0] data;
 //    logic [log2(`X_NODES)-1:0] x_source;

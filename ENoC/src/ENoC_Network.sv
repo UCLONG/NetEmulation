@@ -9,10 +9,11 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 `include "ENoC_Config.sv"    // Defines parameters and topology
+`include "ENoC_Functions.sv"
 
 module ENoC_Network
 
-#(`ifdef XY
+#(`ifdef TORUS
     parameter integer X_NODES = `X_NODES,           // Number of node columns
     parameter integer Y_NODES = `Y_NODES,           // Number of node rows
     parameter integer NODES   = `X_NODES*`Y_NODES,  // Total number of nodes
@@ -106,9 +107,9 @@ module ENoC_Network
       end
     end
   
-  `elsif TORUS
+  `elsif CUBE
 
-    // 2D Mesh with wraparound Torus Links
+    // 2D Cube
     // --------------------------------------------------------------------------------------------------------------
     always_comb begin
       for(int i=0; i<NODES; i++) begin
@@ -162,7 +163,7 @@ module ENoC_Network
   // Generate Routers
   // ------------------------------------------------------------------------------------------------------------------
 
-  `ifdef XY
+  `ifdef TORUS
   
     // Generate routers numbered from 0 to X_NODES-1 in the X direction, from 0 to Y_NODES-1 in the Y direction.
     // For connection to the local network, routers are referenced starting from zero and counting up along the x axis
