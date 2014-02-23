@@ -17,7 +17,7 @@ Each folder contains a README.md file.  This is a file written in the markdown f
 
 ### BEE3_top ###
 
->**DESCRIPTION :** Files for the BEE3 cube FPGA in the connect lab  
+>**DESCRIPTION :** Code specific to UCL group.  Files for synthesising code on the BEE3 cube FPGA in the connect lab  
 **NOTES :** 
 
 ### ENoC ###
