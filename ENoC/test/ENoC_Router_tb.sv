@@ -10,9 +10,10 @@
 //             : otherwise.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "config.sv"
+`include "ENoC_Functions.sv"
+`include "ENoC_Config.sv"
 
-module MESH_Router_tb;
+module ENoC_Router_tb;
 
   logic clk, reset_n;
   
@@ -32,8 +33,8 @@ module MESH_Router_tb;
   
   // DUT
   // ------------------------------------------------------------------------------------------------------------------       
-  MESH_Router #(.X_NODES(4), .Y_NODES(4), .X_LOC(01), .Y_LOC(01)) // inside a 16 node mesh
-    inst_MESH_Router (.*);
+  ENoC_Router #(.X_NODES(4), .Y_NODES(4), .X_LOC(01), .Y_LOC(01), .INPUT_QUEUE_DEPTH(4), .N(5), .M(5)) // inside a 16 node mesh
+    inst_ENoC_Router (.*);
   
   // Clock Generation
   // ------------------------------------------------------------------------------------------------------------------

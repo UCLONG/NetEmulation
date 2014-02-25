@@ -6,7 +6,8 @@
 // Description : NxM packet_t CrossBar Switch. 
 // -------------------------------------------------------------------------------------------------------------------- 
 
-`include "ENoC_Config.sv" // Change this config file to wherever packet_t is declared
+`include "ENoC_Functions.sv" // Change this function file to wherever log2 is declared
+`include "ENoC_Config.sv"   // Change this config file to wherever packet_t is declared
 
 module LIB_Switch_OneHot_packet_t
 
