@@ -8,8 +8,9 @@
 //             : according to read and write requests.
 // Uses        : config.sv
 // Notes       : FIFO uses the packet definition from config.sv.
-
 // --------------------------------------------------------------------------------------------------------------------
+
+`include "ENoC_Config.sv" // Change this config file to wherever packet_t is declared
 
 module LIB_FIFO_packet_t
 

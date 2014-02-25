@@ -11,7 +11,8 @@
 //             : otherwise.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "ENoC_Config.sv" // Instructs whether or not Virtual Output Queues and Load Balancing are used.
+`include "ENoC_Functions.sv"
+`include "ENoC_Config.sv"   // Instructs whether or not Virtual Output Queues and Load Balancing are used.
 
 module ENoC_Router
 

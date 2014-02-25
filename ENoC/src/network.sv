@@ -7,6 +7,7 @@
 // Notes       : Need better way of fitting X_NODES and Y_NODES, currently on works for perfect square.
 // --------------------------------------------------------------------------------------------------------------------
 
+`include "ENoC_Functions.sv"
 `include "ENoC_Config.sv"
 
 module network

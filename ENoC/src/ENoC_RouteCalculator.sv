@@ -8,6 +8,7 @@
 //             : Untested
 // --------------------------------------------------------------------------------------------------------------------
 
+`include "ENoC_Functions.sv"
 `include "ENoC_Config.sv" // Defines topology and whether or not routing should be adaptive
 
 module ENoC_RouteCalculator

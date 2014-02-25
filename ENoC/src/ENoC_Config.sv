@@ -41,7 +41,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 // Type Definitions.  Two types of packet depending on how the the packet is addressed
 // --------------------------------------------------------------------------------------------------------------------
-
+/*
 `ifdef TORUS
 
   // Network packet type for TORUS addressed designs (Mesh/Torus)
@@ -55,7 +55,7 @@
   } packet_t;
 
 `else
-
+*/
   // Network packet type for simple addressed designs
   typedef struct packed {
     logic [`PAYLOAD-1:0] data;
@@ -63,5 +63,6 @@
     logic [log2(`NODES)-1:0] dest;
     logic valid;
   } packet_t;
-
+/*
 `endif
+*/
