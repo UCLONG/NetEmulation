@@ -14,13 +14,16 @@
 module ENoC_Network
 
 #(`ifdef TORUS
-    parameter integer X_NODES = `X_NODES,           // Number of node columns
-    parameter integer Y_NODES = `Y_NODES,           // Number of node rows
-    parameter integer NODES   = `X_NODES*`Y_NODES,  // Total number of nodes
-    parameter integer ROUTERS = `X_NODES*`Y_NODES,
+    parameter integer X_NODES = `X_NODES,                    // Number of node columns
+    parameter integer Y_NODES = `Y_NODES,                    // Number of node rows
+    parameter integer Z_NODES = `Z_NODES,                    // Number of node layers
+    parameter integer NODES   = `X_NODES*`Y_NODES*`Z_NODES,  // Total number of nodes
+    parameter integer ROUTERS = `X_NODES*`Y_NODES*`Z_NODES,  // Total number of routers
     parameter integer DEGREE  = 5,
   `else
-    parameter integer NODES  = `NODES,              // Total number of nodes
+    parameter integer NODES   = `NODES,              // Total number of nodes
+    parameter integer ROUTERS = `ROUTERS,
+    parameter integer DEGREE  = `DEGREE,
   `endif
   parameter integer INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH) // Depth of input buffering
 
@@ -82,6 +85,8 @@ module ENoC_Network
         l_datain[i][2] = (((i + 1)% X_NODES) == 0) ? 'z : l_dataout[i+1][4];         // East Input
         l_datain[i][3] = (i > (X_NODES-1)) ? l_dataout[i-X_NODES][1] : 'z;           // South Input
         l_datain[i][4] = ((i % X_NODES) == 0) ? 'z : l_dataout[i-1][2];              // West Input
+        l_datain[i][5] =
+        l_datain[i][6] =
         
         // Router input 'data valid'
         //   -- Taken from upstream router output data valid and upstream node output data valid
@@ -89,15 +94,19 @@ module ENoC_Network
         l_datain_val[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_dataout_val[i+X_NODES][3] : 'z; // North Input
         l_datain_val[i][2] = (((i + 1)% X_NODES) == 0) ? 'z : l_dataout_val[i+1][4];         // East Input
         l_datain_val[i][3] = (i > (X_NODES-1)) ? l_dataout_val[i-X_NODES][1] : 'z;           // South Input
-        l_datain_val[i][4] = ((i % X_NODES) == 0) ? 'z : l_dataout_val[i-1][2];              // West Input      
-    
+        l_datain_val[i][4] = ((i % X_NODES) == 0) ? 'z : l_dataout_val[i-1][2];              // West Input  
+        l_datain_val[i][5] =
+        l_datain_val[i][6] =
+        
         // Router input 'enable'
         //   -- Taken from upstream router output data enable and upstream node output data enable
         l_i_en[i][0] = i_en[i];                                                 // Local input
         l_i_en[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_o_en[i+X_NODES][3] : 'z; // North Input
         l_i_en[i][2] = (((i + 1)% X_NODES) == 0) ? 'z : l_o_en[i+1][4];         // East Input
         l_i_en[i][3] = (i > (X_NODES-1)) ? l_o_en[i-X_NODES][1] : 'z;           // South Input
-        l_i_en[i][4] = ((i % X_NODES) == 0) ? 'z : l_o_en[i-1][2];              // West Input      
+        l_i_en[i][4] = ((i % X_NODES) == 0) ? 'z : l_o_en[i-1][2];              // West Input
+        l_i_en[i][5] =
+        l_i_en[i][6] =        
       
         // Node inputs, i.e network outputs
         o_data[i]     = l_dataout[i][0];
