@@ -9,7 +9,7 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 
-module NEMUSerialPortOut(
+module NEMU_SerialPortOutput(
   input logic i_clk, 
   input logic reset_n,
   input logic i_wrEn,
@@ -34,7 +34,7 @@ module NEMUSerialPortOut(
  
 
                 
- LIB_FIFO serialFifo (i_data, 
+ fifo serialFifo (i_data, 
                   i_wrEn, 
                   l_rdEn, 
                   l_serialData, 

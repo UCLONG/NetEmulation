@@ -31,6 +31,7 @@ module NEMU_NetEmulation (
 /////////////////////////////////////////////
 //////// MODULE DEF FOR SIMULATION ////////// 
 ///////////////////////////////////////////// 
+
 `else  
 module NEMU_NetEmulation ();
   
@@ -64,14 +65,7 @@ module NEMU_NetEmulation ();
   logic serialTX;
   logic dataSent;
   
-  `ifdef VHDL
-    logic [`PKT_SIZE*`PORTS-1:0] pkt_in_vhdl /* synthesis keep */;
-    logic [`PKT_SIZE*`PORTS-1:0] pkt_out_vhdl /* synthesis keep */;
-    integer k;
-  `endif
-  
 
-  
   //////////////////////////////////////////////////////////////////////
   ////////////// COMMON CODE FOR SIM AND SYNTH /////////////////////////
   //////////////////////////////////////////////////////////////////////  
@@ -84,11 +78,10 @@ module NEMU_NetEmulation ();
       end
    endgenerate
   
-  // Instantiate pkt sink
+
   NEMU_PacketSink sinks (clk, rst, pkt_out, pkt_in, timestamp, input_fifo_error, net_full, measure, latency, pkt_count_rx, pkt_count_tx);  
   
- //MemoryWrapper24
- 
+
   NEMU_SerialPortWrapper SerialPortWrapper(clk, rst, latency, pkt_count_rx, pkt_count_tx, sendData, dataSent, serialTX); 
   
   
@@ -103,32 +96,13 @@ module NEMU_NetEmulation ();
   //////////////////////////////////////////////////////////////////////
   ////////////////////// INSTANTIATE NETWORK ///////////////////////////
   //////////////////////////////////////////////////////////////////////
-  `ifdef VHDL
-  
-  // VHDL network model
-  generate for (i=0;i<`PORTS;i++) begin
-    always_comb begin
-      pkt_in_vhdl[(i+1)*`PKT_SIZE-1:i*`PKT_SIZE] = {pkt_in[i].data, pkt_in[i].source, pkt_in[i].dest, pkt_in[i].valid};
-      pkt_out[i].data    = pkt_out_vhdl[(i+1)*`PKT_SIZE-1:i*`PKT_SIZE+(2*log2(`PORTS))+1];
-      pkt_out[i].source  = pkt_out_vhdl[i*`PKT_SIZE+(2*log2(`PORTS)):i*`PKT_SIZE+log2(`PORTS)+1];
-      pkt_out[i].dest    = pkt_out_vhdl[i*`PKT_SIZE+log2(`PORTS):i*`PKT_SIZE+1];
-      pkt_out[i].valid   = pkt_out_vhdl[i*`PKT_SIZE];
-    end
-  end
-  endgenerate
-  
-  network #(`PORTS, log2(`PORTS), `FIFO_DEPTH, `PAYLOAD) inst_net(clk, rst, pkt_in_vhdl, pkt_out_vhdl, full);
-  
-  `else
-  
+
   // SystemVerilog network model
   network inst_net(clk, rst, pkt_in, pkt_out, net_full);
   
-  `endif
+
   
-/////////////////////////////////////////////
-////////// CODE SPECIFIC TO SYNTH /////////// 
-///////////////////////////////////////////// 
+
 `ifdef SYNTHESIS  
 
   // Generate system clock  
@@ -185,7 +159,7 @@ module NEMU_NetEmulation ();
     #10us
     sendData = 1;
     //not working
-    #50us
+    #20us
     $finish;
  
   end

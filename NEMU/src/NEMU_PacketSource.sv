@@ -148,7 +148,7 @@ module NEMU_PacketSource(
 	 
 	 `else
 	 
-	 LIB_FIFO #(512, 40, 0) input_fifo (l_fifo_din, l_wr_en, l_rd_en, l_fifo_dout, l_full, l_empty, ,i_clk, reset_n);
+	 fifo #(512, 40, 0) input_fifo (l_fifo_din, l_wr_en, l_rd_en, l_fifo_dout, l_full, l_empty, ,i_clk, reset_n);
 	 
 	 `endif
 	 
