@@ -43,25 +43,29 @@
 // --------------------------------------------------------------------------------------------------------------------
 /*
 `ifdef TORUS
-
-  // Network packet type for TORUS addressed designs (Mesh/Torus)
+  
+  // Network packet type for testing TORUS addressed designs (Mesh/Torus)
   typedef struct packed {
-    logic [`PAYLOAD-1:0] data;
-    logic [log2(`X_NODES)-1:0] x_source;
-    logic [log2(`Y_NODES)-1:0] y_source;
-    logic [log2(`X_NODES)-1:0] x_dest;
-    logic [log2(`Y_NODES)-1:0] y_dest;
-    logic valid;
-  } packet_t;
+    logic [`PAYLOAD-1:0]         data
+    logic [log2(`X_NODES)-1:0]   x_source;
+    logic [log2(`Y_NODES)-1:0]   y_source;   
+    logic [log2(`X_NODES)-1:0]   x_dest;
+    logic [log2(`Y_NODES)-1:0]   y_dest;   
+    logic                        valid;
+    logic [`TIME_STAMP_SIZE-1:0] timestamp;
+    logic                        measure;
+  } packet_t; 
 
 `else
 */
   // Network packet type for simple addressed designs
   typedef struct packed {
-    logic [`PAYLOAD-1:0] data;
-    logic [log2(`NODES)-1:0] source;
-    logic [log2(`NODES)-1:0] dest;
-    logic valid;
+    logic [`PAYLOAD-1:0]         data;
+    logic [log2(`NODES)-1:0]     source;
+    logic [log2(`NODES)-1:0]     dest;
+    logic                        valid;
+    logic [`TIME_STAMP_SIZE-1:0] timestamp;
+    logic                        measure;
   } packet_t;
 /*
 `endif
