@@ -25,8 +25,8 @@
 // -------------------------------------------------------------------------------------------------------------------- 
 // Non-torus specific test parameters
 // --------------------------------------------------------------------------------------------------------------------
-`define INPUTS 10
-`define OUTPUTS 4
+`define N 5
+`define M 5
 // `define HOTSPOT
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -34,33 +34,61 @@
 // --------------------------------------------------------------------------------------------------------------------
 `define CLK_PERIOD 5ns
 `define PACKETS_PER_PORT 5
+`define PACKET_RATE 50 // Integer number between 1 and 100, representing percent of offered traffic
 // `define HOTSPOT_IN
 
 // --------------------------------------------------------------------------------------------------------------------
 // Traffic types
 // --------------------------------------------------------------------------------------------------------------------
-`define BERNOULLI 10
+`define BERNOULLI
 // `define BURST
 
+// --------------------------------------------------------------------------------------------------------------------
+// Test Bench
+// --------------------------------------------------------------------------------------------------------------------
 
 module ENoC_Router_tb;
 
   logic clk, reset_n;
   
-  // Upstream Bus.
+  // Upstream Router Bus.
   // ------------------------------------------------------------------------------------------------------------------
-  packet_t [0:4] i_data;     // Input data from upstream [core, north, east, south, west]
-  logic    [0:4] i_data_val; // Validates data from upstream [core, north, east, south, west]
-  logic    [0:4] o_en;       // Enables data from upstream [core, north, east, south, west]
+  packet_t [0:`N-1] i_data;     // Input data from upstream [core, north, east, south, west]
+  logic    [0:`N-1] i_data_val; // Validates data from upstream [core, north, east, south, west]
+  logic    [0:`N-1] o_en;       // Enables data from upstream [core, north, east, south, west]
   
-  // Downstream Bus
+  // Downstream Router Bus
   // ------------------------------------------------------------------------------------------------------------------
-  logic    [0:4] i_en;       // Enables output to downstream [core, north, east, south, west]
-  packet_t [0:4] o_data;     // Outputs data to downstream [core, north, east, south, west]
-  logic    [0:4] o_data_val; // Validates output data to downstream [core, north, east, south, west]
+  logic    [0:`M-1] i_en;       // Enables output to downstream [core, north, east, south, west]
+  packet_t [0:`M-1] o_data;     // Outputs data to downstream [core, north, east, south, west]
+  logic    [0:`M-1] o_data_val; // Validates output data to downstream [core, north, east, south, west]
   
-  logic    [0:4][2:0]  l_data_count;  // Used to count how many packets have been transmitted
-  logic         [31:0] l_time;        // Used as a for time stamping
+  // FIFO signals
+  // ------------------------------------------------------------------------------------------------------------------
+  packet_t [0:`N-1] s_i_data;     // Input data from upstream [core, north, east, south, west]
+  logic    [0:`N-1] s_i_data_val; // Validates data from upstream [core, north, east, south, west]
+  logic    [0:`N-1] f_saturate;
+  
+  // Packet Generation Flags
+  // ------------------------------------------------------------------------------------------------------------------  
+  logic [0:`N-1] f_data_val;
+  logic [0:`N-1] f_measure;
+  `ifdef TORUS  
+    logic [0:`N-1][log2(`X_NODES)-1:0] f_x_dest;
+    logic [0:`N-1][log2(`Y_NODES)-1:0] f_y_dest;
+  `else
+    logic [0:`N-1][log2(`NODES)-1:0] f_dest;
+  `endif
+  
+  // Control Flags
+  // ------------------------------------------------------------------------------------------------------------------  
+  logic    [0:`N-1][2:0]  f_port_data_count;  // Used to count how many packets have been transmitted
+  logic            [31:0] f_total_data_count; // Used to count how many packets have been transmitted
+  logic            [31:0] f_time;             // Used as a for time stamping
+
+
+
+  
   
   // DUT
   // ------------------------------------------------------------------------------------------------------------------       
@@ -72,8 +100,8 @@ module ENoC_Router_tb;
                 .X_LOC(`X_LOC),
                 .Y_LOC(`Y_LOC),
                 .INPUT_QUEUE_DEPTH(`INPUT_QUEUE_DEPTH),
-                .N(5),
-                .M(5))
+                .N(`N),
+                .M(`M))
     DUT_ENoC_Router (.*);
     
   `else
@@ -93,8 +121,8 @@ module ENoC_Router_tb;
   // Time Generation
   // ------------------------------------------------------------------------------------------------------------------
   initial begin
-    l_time = 0;
-    forever #(`CLK_PERIOD) l_time = l_time + 1;
+    f_time = 0;
+    forever #(`CLK_PERIOD) f_time = f_time + 1;
   end  
   
   // Reset Simulation
@@ -105,44 +133,140 @@ module ENoC_Router_tb;
     reset_n = 1;
   end
 
-  // Random Input Packet Generation.
+  // Downstream Router simulation
+  // ------------------------------------------------------------------------------------------------------------------
+  always_ff@(posedge clk) begin
+    if(~reset_n) begin
+      for(int i=0; i<`M; i++) begin
+        i_en[i] <= 0;
+      end
+    end else begin
+      for(int i=0; i<`M; i++) begin
+        i_en[i] <= $urandom_range(1); // Simulates downstream routers enabling write permission 50% of the time. 
+      end
+    end
+  end
+  
+  // Node Simulation
+  // ------------------------------------------------------------------------------------------------------------------
+  genvar i;
+  generate
+    for (i=0; i<`N; i++) begin : GENERATE_INPUT_QUEUES
+      LIB_FIFO_packet_t #(.DEPTH(`INPUT_QUEUE_DEPTH))
+        gen_LIB_FIFO_packet_t (.clk,
+                               .ce(1'b1),
+                               .reset_n,
+                               .i_data(s_i_data[i]),         // From the simulated input data
+                               .i_data_val(s_i_data_val[i]), // From the simulated input data
+                               .i_en(o_en[i]),               // From the Router
+                               .o_data(i_data[i]),           // To the Router
+                               .o_data_val(i_data_val[i]),   // To the Router
+                               .o_en(f_saturate[i]),             // Used to indicate router saturation
+                               .o_full(),                    // Not connected, o_en used for flow control
+                               .o_empty(),                   // Not connected, not required for simple flow control
+                               .o_near_empty());             // Not connected, not required for simple flow control
+    end
+  endgenerate
+  
+  // Packet Counter.
+  // ------------------------------------------------------------------------------------------------------------------
+  always_ff@(posedge clk) begin
+    if(~reset_n) begin
+      for(int i=0; i<`N; i++) begin
+        f_port_data_count[i] <= 0;
+      end
+      f_total_data_count <= 0;
+    end else begin
+      for(int i=0; i<`N; i++) begin
+        f_port_data_count[i]  <= i_data[i].valid ? f_port_data_count[i] + 1 : f_port_data_count[i];
+        f_total_data_count[i] <= i_data[i].valid ? f_total_data_count + 1   : f_total_data_count;
+      end
+    end
+  end
+  
+  // Destination Flag Generation
+  // ------------------------------------------------------------------------------------------------------------------
+  always_ff@(posedge clk) begin
+    if(~reset_n) begin
+      for(int i=0; i<`N; i++) begin
+      `ifdef TORUS
+        f_x_dest[i] <= 0;
+        f_y_dest[i] <= 0;
+      `else
+        f_dest[i] <= 0;
+      `endif
+      end
+    end else begin
+      for(int i=0; i<`N; i++) begin
+      `ifdef TORUS
+        f_x_dest[i] <= $urandom_range(`X_NODES-1);
+        f_y_dest[i] <= $urandom_range(`Y_NODES-1);
+      `else
+        f_dest[i] <= $urandom_range(`NODES-1);
+      `endif
+      end
+    end
+  end
+  
+  // Measure Flag Generation
+  // ------------------------------------------------------------------------------------------------------------------
+  always_ff@(posedge clk) begin
+    if(~reset_n) begin
+      for(int i=0; i<`N; i++) begin
+        f_measure[i] <= 0;
+      end
+    end else begin
+      for(int i=0; i<`N; i++) begin
+        f_measure[i] <= 1;
+      end
+    end
+  end
+  
+  // Valid Flag Bernouilli Generation
+  // ------------------------------------------------------------------------------------------------------------------
+  always_ff@(posedge clk) begin
+    if(~reset_n) begin
+      for(int i=0; i<`N; i++) begin
+        f_data_val[i] <= 0;
+      end
+    end else begin
+      for(int i=0; i<`N; i++) begin
+        f_data_val[i] <= ($urandom_range(100,1) <= `PACKET_RATE) ? 1 : 0;
+      end
+    end
+  end  
+  
+  // Populate input data
   // ------------------------------------------------------------------------------------------------------------------  
   always_ff@(posedge clk) begin
     if(~reset_n) begin
-      for(int i=0; i<`DEGREE; i++) begin
-        l_data_count[i]  <= 0;
-        i_en[i]          <= 0;        
-        i_data[i].data   <= 1;
-        i_data[i].source <= i;
-        i_data[i].dest   <= 0;
-        i_data[i].valid  <= 0;
+      for(int i=0; i<`N; i++) begin
+        s_i_data[i].data      <= 1; // Data field used to number packets
+        `ifdef TORUS
+        s_i_data[i].x_source  <= i;
+        s_i_data[i].y_source  <= i;
+        s_i_data[i].x_dest    <= 0;
+        s_i_data[i].y_dest    <= 0;        
+        `else
+        s_i_data[i].source    <= i; // Source field used to indicate which input port the data was sent
+        s_i_data[i].dest      <= 0; // Route calculation is performed on the destination field.
+        `endif
+        s_i_data[i].valid     <= 0; // Valid field indicates if the packet is valid or not
+        s_i_data[i].timestamp <= 0; // Timestamp field used to indicate when packet was generated
+        s_i_data[i].measure   <= 0; // Measure field used to indicate if packet should be measured      
       end
     end else begin
-      for(int i=0; i<`DEGREE; i++) begin
-        
-        // Counter counts packets input to each port
-        l_data_count[i] <= i_data[i].valid ? l_data_count[i] + 1 : l_data_count[i];
-        
-        // Simulate downstream routers enabling write permission 50% of the time. 
-        i_en[i]         <= $urandom_range(1);
-        
-        // -- Populate input packets --
-
-        // Packets declared valid randomly according to an offered traffic percentage, until a given number have been sent
-        i_data[i].valid <= (l_data_count[i] < `PACKETS_PER_PORT) ? $urandom_range(1) : 0;          
-        
-        // each valid packets will be given a number, starting from 1.
-        i_data[i].data  <= i_data[i].valid ? i_data[i].data  + 1 : i_data[i].data;
-        
-        // Packets given a destination, equal chance to be any node destination
+      for(int i=0; i<`N; i++) begin
+        s_i_data[i].data  <= s_i_data[i].valid ? s_i_data[i].data  + 1 : s_i_data[i].data;       
         `ifdef TORUS
-          i_data[i].dest  <= $urandom_range(`NODES-1);        
-          // i_data[i].x_dest <= $urandom_range(`X_NODES-1);
-          // i_data[i].y_dest <= $urandom_range(`Y_NODES-1);
+          s_i_data[i].x_dest <= f_x_dest[i];
+          s_i_data[i].y_dest <= f_y_dest[i];
         `else
-          i_data[i].dest  <= $urandom_range(`NODES-1);
+          s_i_data[i].dest  <= f_dest[i];
         `endif
-
+        s_i_data[i].valid     <= (f_port_data_count[i] < `PACKETS_PER_PORT) ? f_data_val[i] : 0;
+        s_i_data[i].timestamp <= f_time + 1;
+        s_i_data[i].measure   <= f_measure[i];
       end
     end
   end
@@ -151,15 +275,15 @@ module ENoC_Router_tb;
   // for simplicity they are just connected here.
   // ------------------------------------------------------------------------------------------------------------------   
   always_comb begin
-    for(int i=0; i<`DEGREE; i++) begin
-      i_data_val[i] = i_data[i].valid;
+    for(int i=0; i<`N; i++) begin
+      s_i_data_val[i] = s_i_data[i].valid;
     end
   end
   
   // Test functions
   // ------------------------------------------------------------------------------------------------------------------ 
   initial begin
-    $display("Test starting. %d packets will be sent at an offered traffic ratio of %d", `PACKETS_PER_PORT*5, `LOAD);
+    $display("Test starting. %d packets will be sent at an offered traffic ratio of %d", `PACKETS_PER_PORT*`N, `PACKET_RATE);
   end
   
 endmodule

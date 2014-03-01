@@ -50,7 +50,6 @@ module ENoC_Router
          packet_t        [0:N-1] l_i_data;       // Output of the input crossbar
          logic           [0:N-1] l_i_data_val;   // Output of the input crossbar
          logic           [0:N-1] l_o_en;         // Enable of the input crossbar
-         logic    [0:N-1][0:N-1] l_sel;          // Crossbar selection control
          
          // Connections between input queues and switch etc.
          packet_t        [0:N-1] l_data;         // Connects FIFO data outputs to switch
@@ -63,6 +62,8 @@ module ENoC_Router
   assign ce = 1'b1;
 
   `ifdef LOAD_BALANCE
+  
+         logic    [0:N-1][0:N-1] l_sel;          // Crossbar selection control
   
     // Load Balancing.  Input data is assigned a random router input channel by inserting a crossbar between the
     // upstream bus and the input channels.  The following code describes an NxN crossbar for each input connection.  
@@ -210,11 +211,11 @@ module ENoC_Router
                                  .NODES(NODES), .LOC(LOC))
                                `endif 
           gen_ENoC_RouteCalculator (`ifdef TORUS
-                                      // Delete uncommented code once packet_t is sorted
-                                      .i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
-                                      //.i_x_dest(l_data[i].x_dest),
-                                      //.i_y_dest(l_data[i].y_dest),
+                                      // Delete commented code once packet_t is sorted in NEMU
+                                      // .i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      // .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      .i_x_dest(l_data[i].x_dest),
+                                      .i_y_dest(l_data[i].y_dest),
                                     `else
                                       .i_dest(l_data[i].dest),
                                     `endif
