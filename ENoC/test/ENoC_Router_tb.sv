@@ -33,15 +33,15 @@
 // General test parameters
 // --------------------------------------------------------------------------------------------------------------------
 `define CLK_PERIOD 5ns
-`define PACKETS_PER_PORT 5
-`define PACKET_RATE 50 // Integer number between 1 and 100, representing percent of offered traffic
+
 // `define HOTSPOT_IN
 
 // --------------------------------------------------------------------------------------------------------------------
-// Traffic types
+// Traffic
 // --------------------------------------------------------------------------------------------------------------------
-`define BERNOULLI
-// `define BURST
+`define PACKETS_PER_PORT 3
+`define PACKET_RATE 50 // Integer number between 1 and 100, representing percent of offered traffic
+`define BURST_SIZE 1
 
 // --------------------------------------------------------------------------------------------------------------------
 // Test Bench
@@ -82,13 +82,12 @@ module ENoC_Router_tb;
   
   // Control Flags
   // ------------------------------------------------------------------------------------------------------------------  
-  logic    [0:`N-1][2:0]  f_port_data_count;  // Used to count how many packets have been transmitted
-  logic            [31:0] f_total_data_count; // Used to count how many packets have been transmitted
+  logic    [0:`N-1][2:0]  f_burst_count;  // Used to count how many packets have been transmitted
+  logic    [0:`N-1][2:0]  f_port_i_data_count;  // Used to count how many packets have been transmitted
+  logic            [31:0] f_total_i_data_count; // Used to count how many packets have been transmitted
+  logic    [0:`N-1][2:0]  f_port_o_data_count;  // Used to count how many packets have been received
+  logic            [31:0] f_total_o_data_count; // Used to count how many packets have been received
   logic            [31:0] f_time;             // Used as a for time stamping
-
-
-
-  
   
   // DUT
   // ------------------------------------------------------------------------------------------------------------------       
@@ -106,7 +105,11 @@ module ENoC_Router_tb;
     
   `else
   
-  ENoC_Router #(.NODES(`NODES), .LOC(`LOC), .INPUT_QUEUE_DEPTH(`INPUT_QUEUE_DEPTH), .N(`INPUTS), .M(`OUTPUTS))
+  ENoC_Router #(.NODES(`NODES),
+                .LOC(`LOC),
+                .INPUT_QUEUE_DEPTH(`INPUT_QUEUE_DEPTH),
+                .N(`INPUTS),
+                .M(`OUTPUTS))
     DUT_ENoC_Router (.*);  
   
   `endif
@@ -161,29 +164,41 @@ module ENoC_Router_tb;
                                .i_en(o_en[i]),               // From the Router
                                .o_data(i_data[i]),           // To the Router
                                .o_data_val(i_data_val[i]),   // To the Router
-                               .o_en(f_saturate[i]),             // Used to indicate router saturation
+                               .o_en(f_saturate[i]),         // Used to indicate router saturation
                                .o_full(),                    // Not connected, o_en used for flow control
                                .o_empty(),                   // Not connected, not required for simple flow control
                                .o_near_empty());             // Not connected, not required for simple flow control
     end
   endgenerate
   
-  // Packet Counter.
+  // Packet Counters.
   // ------------------------------------------------------------------------------------------------------------------
+  
+  // These counters are clocked, so the value during a given clock cycle does not account for what is happening that
+  // cycle.  This must be considered carefully when using the value for control.
   always_ff@(posedge clk) begin
     if(~reset_n) begin
       for(int i=0; i<`N; i++) begin
-        f_port_data_count[i] <= 0;
-      end
-      f_total_data_count <= 0;
+        f_port_i_data_count[i] <= 0;
+        f_port_o_data_count[i] <= 0;        
+      end   
     end else begin
       for(int i=0; i<`N; i++) begin
-        f_port_data_count[i]  <= i_data[i].valid ? f_port_data_count[i] + 1 : f_port_data_count[i];
-        f_total_data_count[i] <= i_data[i].valid ? f_total_data_count + 1   : f_total_data_count;
+        f_port_i_data_count[i]  <= s_i_data[i].valid ? f_port_i_data_count[i] + 1 : f_port_i_data_count[i];
+        f_port_o_data_count[i]  <= o_data[i].valid   ? f_port_o_data_count[i] + 1 : f_port_o_data_count[i];
       end
     end
   end
   
+  always_comb begin
+    f_total_i_data_count = 0;
+    f_total_o_data_count = 0;
+    for(int i=0; i<`N; i++) begin  
+      f_total_i_data_count = f_port_i_data_count[i] + f_total_i_data_count;
+      f_total_o_data_count = f_port_o_data_count[i] + f_total_o_data_count;
+    end
+  end
+        
   // Destination Flag Generation
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(posedge clk) begin
@@ -222,16 +237,27 @@ module ENoC_Router_tb;
     end
   end
   
-  // Valid Flag Bernouilli Generation
+  // Valid Flag Generation
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(posedge clk) begin
     if(~reset_n) begin
       for(int i=0; i<`N; i++) begin
         f_data_val[i] <= 0;
+        f_burst_count[i] <= 0;
       end
     end else begin
       for(int i=0; i<`N; i++) begin
-        f_data_val[i] <= ($urandom_range(100,1) <= `PACKET_RATE) ? 1 : 0;
+        if ($urandom_range((100/`PACKET_RATE)*`BURST_SIZE,1) == 1) begin
+          f_data_val[i]    <= 1;
+          f_burst_count[i] <= `BURST_SIZE-1 + f_burst_count[i];
+          // f_burst_count[i] <= $urandom_range((`BURST_SIZE*2)-1,0) + f_burst_count[i];            
+        end else if (f_burst_count[i] > 0) begin
+          f_data_val[i]    <= 1;
+          f_burst_count[i] <= f_burst_count[i] - 1;
+        end else begin
+          f_data_val[i]    <= 0;
+          f_burst_count[i] <= 0;
+        end
       end
     end
   end  
@@ -257,14 +283,18 @@ module ENoC_Router_tb;
       end
     end else begin
       for(int i=0; i<`N; i++) begin
-        s_i_data[i].data  <= s_i_data[i].valid ? s_i_data[i].data  + 1 : s_i_data[i].data;       
+        s_i_data[i].data      <= s_i_data[i].valid ? s_i_data[i].data  + 1 : s_i_data[i].data;       
         `ifdef TORUS
-          s_i_data[i].x_dest <= f_x_dest[i];
-          s_i_data[i].y_dest <= f_y_dest[i];
+        s_i_data[i].x_dest    <= f_x_dest[i];
+        s_i_data[i].y_dest    <= f_y_dest[i];
         `else
-          s_i_data[i].dest  <= f_dest[i];
+        s_i_data[i].dest      <= f_dest[i];
         `endif
-        s_i_data[i].valid     <= (f_port_data_count[i] < `PACKETS_PER_PORT) ? f_data_val[i] : 0;
+        // s_i_data[i].valid uses a count flag, the count flag doesn't consider what is happening during the current
+        // cycle, so when comparing with the flag, it needs to be checked that all packets have been counted.
+        s_i_data[i].valid     <= (f_port_i_data_count[i] < `PACKETS_PER_PORT - 1) 
+                                 || ((f_port_i_data_count[i] < `PACKETS_PER_PORT) && (s_i_data[i].valid != 1)) 
+                                 ? f_data_val[i] : 0;
         s_i_data[i].timestamp <= f_time + 1;
         s_i_data[i].measure   <= f_measure[i];
       end
@@ -283,7 +313,13 @@ module ENoC_Router_tb;
   // Test functions
   // ------------------------------------------------------------------------------------------------------------------ 
   initial begin
-    $display("Test starting. %d packets will be sent at an offered traffic ratio of %d", `PACKETS_PER_PORT*`N, `PACKET_RATE);
+    $display("Test starting. %5d packets will be sent at an offered traffic ratio of %5d", `PACKETS_PER_PORT*`N, `PACKET_RATE);
+    forever @(negedge clk) begin
+      if (f_total_o_data_count == `PACKETS_PER_PORT*`N) begin
+        $display("Recieved all %5d packets", `PACKETS_PER_PORT*`N);
+        $finish;
+      end
+    end
   end
   
 endmodule

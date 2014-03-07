@@ -29,7 +29,7 @@ module LIB_Switch_OneHot_packet_t
   // Crossbar Switch.  Input selection is onehot.  
   // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
-    l_data = 'z;
+    l_data = '0;
     for(int i=0; i<M; i++) begin
       // compare i_sel with a one hot word to determine which input is required
       for(int j=0; j<N; j++) begin

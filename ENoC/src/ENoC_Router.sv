@@ -131,14 +131,11 @@ module ENoC_Router
                                  .NODES(NODES), .LOC(LOC))
                                `endif
           gen_ENoC_RouteCalculator (`ifdef TORUS
-                                      // Following two lines adapt a single address into a two part address.  Will only
-                                      // work for networks where the number of nodes is a function of 2^2n where n is 
-                                      // a positive integer
-                                      .i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
-                                      // Correct code below
-                                      // .i_x_dest(l_data[i].x_dest),
-                                      // .i_y_dest(l_data[i].y_dest),
+                                      // Delete commented code once packet_t is sorted in NEMU
+                                      // .i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      // .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      .i_x_dest(l_data[i].x_dest),
+                                      .i_y_dest(l_data[i].y_dest),
                                     `else
                                       .i_dest(l_data[i].dest),
                                     `endif
