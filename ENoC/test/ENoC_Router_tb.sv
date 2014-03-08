@@ -19,29 +19,26 @@
 `define DEGREE 5
 `define X_LOC 4
 `define Y_LOC 4
-// `define X_HOTSPOT
-// `define Y_HOTSPOT
  
 // -------------------------------------------------------------------------------------------------------------------- 
 // Non-torus specific test parameters
 // --------------------------------------------------------------------------------------------------------------------
 `define N 5
 `define M 5
-// `define HOTSPOT
 
 // --------------------------------------------------------------------------------------------------------------------
 // General test parameters
 // --------------------------------------------------------------------------------------------------------------------
 `define CLK_PERIOD 5ns
 
-// `define HOTSPOT_IN
-
 // --------------------------------------------------------------------------------------------------------------------
 // Traffic
 // --------------------------------------------------------------------------------------------------------------------
-`define PACKETS_PER_PORT 3
-`define PACKET_RATE 50 // Integer number between 1 and 100, representing percent of offered traffic
-`define BURST_SIZE 1
+`define PACKET_RATE 30      // Integer number between 1 and 100, representing percent of offered traffic
+`define PACKETS_PER_PORT 100
+`define PACKET_BURST_SIZE 1
+`define WARM_UP_PACKETS_PER_PORT 30
+`define DOWNSTREAM_EN_RATE 100
 
 // --------------------------------------------------------------------------------------------------------------------
 // Test Bench
@@ -69,10 +66,9 @@ module ENoC_Router_tb;
   logic    [0:`N-1] s_i_data_val; // Validates data from upstream [core, north, east, south, west]
   logic    [0:`N-1] f_saturate;
   
-  // Packet Generation Flags
+  // Random Flags
   // ------------------------------------------------------------------------------------------------------------------  
   logic [0:`N-1] f_data_val;
-  logic [0:`N-1] f_measure;
   `ifdef TORUS  
     logic [0:`N-1][log2(`X_NODES)-1:0] f_x_dest;
     logic [0:`N-1][log2(`Y_NODES)-1:0] f_y_dest;
@@ -82,12 +78,21 @@ module ENoC_Router_tb;
   
   // Control Flags
   // ------------------------------------------------------------------------------------------------------------------  
-  logic    [0:`N-1][2:0]  f_burst_count;  // Used to count how many packets have been transmitted
-  logic    [0:`N-1][2:0]  f_port_i_data_count;  // Used to count how many packets have been transmitted
-  logic            [31:0] f_total_i_data_count; // Used to count how many packets have been transmitted
-  logic    [0:`N-1][2:0]  f_port_o_data_count;  // Used to count how many packets have been received
-  logic            [31:0] f_total_o_data_count; // Used to count how many packets have been received
-  logic            [31:0] f_time;             // Used as a for time stamping
+  integer f_burst_count [0:`N-1] ;      // Used to count how many packets have been transmitted
+  integer f_port_i_data_count [0:`N-1]; // Used to count how many packets have been transmitted
+  integer f_total_i_data_count;         // Used to count how many packets have been transmitted
+  integer f_port_o_data_count [0:`N-1]; // Used to count how many packets have been received
+  integer f_total_o_data_count;         // Used to count how many packets have been received
+  longint f_time;                       // Used as a for time stamping
+  real    f_total_latency;              // Counts the total amount of time all packets have spent in the router
+  integer f_cooldown_count;             // Used to ensure router has finished outputting packets
+  real    f_average_latency;            // Calculates the average latency of measured packets
+  real    f_measured_packet_count;      // Number of packets measured
+  integer f_routing_fail_count;         // Used to count the total number of routing failures
+  logic   f_test_complete;
+  logic   f_test_abort;
+  logic   f_test_fail;
+  logic   f_txrx;
   
   // DUT
   // ------------------------------------------------------------------------------------------------------------------       
@@ -114,21 +119,19 @@ module ENoC_Router_tb;
   
   `endif
   
-  // Clock Generation
+  // SIMULATION: Clock and Time
   // ------------------------------------------------------------------------------------------------------------------
   initial begin
     clk = 1;
     forever #(`CLK_PERIOD/2) clk = ~clk;
   end
   
-  // Time Generation
-  // ------------------------------------------------------------------------------------------------------------------
   initial begin
     f_time = 0;
     forever #(`CLK_PERIOD) f_time = f_time + 1;
   end  
   
-  // Reset Simulation
+  // SIMULATION:  Reset
   // ------------------------------------------------------------------------------------------------------------------
   initial begin
     reset_n = 0;
@@ -136,7 +139,7 @@ module ENoC_Router_tb;
     reset_n = 1;
   end
 
-  // Downstream Router simulation
+  // SIMULATION:  Downstream Router
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(posedge clk) begin
     if(~reset_n) begin
@@ -145,12 +148,12 @@ module ENoC_Router_tb;
       end
     end else begin
       for(int i=0; i<`M; i++) begin
-        i_en[i] <= $urandom_range(1); // Simulates downstream routers enabling write permission 50% of the time. 
+        i_en[i] <= ($urandom_range(100,1) <= `DOWNSTREAM_EN_RATE) ? 1 : 0;
       end
     end
   end
   
-  // Node Simulation
+  // SIMULATION:  Upstream Routers and Node
   // ------------------------------------------------------------------------------------------------------------------
   genvar i;
   generate
@@ -170,36 +173,8 @@ module ENoC_Router_tb;
                                .o_near_empty());             // Not connected, not required for simple flow control
     end
   endgenerate
-  
-  // Packet Counters.
-  // ------------------------------------------------------------------------------------------------------------------
-  
-  // These counters are clocked, so the value during a given clock cycle does not account for what is happening that
-  // cycle.  This must be considered carefully when using the value for control.
-  always_ff@(posedge clk) begin
-    if(~reset_n) begin
-      for(int i=0; i<`N; i++) begin
-        f_port_i_data_count[i] <= 0;
-        f_port_o_data_count[i] <= 0;        
-      end   
-    end else begin
-      for(int i=0; i<`N; i++) begin
-        f_port_i_data_count[i]  <= s_i_data[i].valid ? f_port_i_data_count[i] + 1 : f_port_i_data_count[i];
-        f_port_o_data_count[i]  <= o_data[i].valid   ? f_port_o_data_count[i] + 1 : f_port_o_data_count[i];
-      end
-    end
-  end
-  
-  always_comb begin
-    f_total_i_data_count = 0;
-    f_total_o_data_count = 0;
-    for(int i=0; i<`N; i++) begin  
-      f_total_i_data_count = f_port_i_data_count[i] + f_total_i_data_count;
-      f_total_o_data_count = f_port_o_data_count[i] + f_total_o_data_count;
-    end
-  end
         
-  // Destination Flag Generation
+  // RANDOM FLAG:  Destination
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(posedge clk) begin
     if(~reset_n) begin
@@ -223,21 +198,7 @@ module ENoC_Router_tb;
     end
   end
   
-  // Measure Flag Generation
-  // ------------------------------------------------------------------------------------------------------------------
-  always_ff@(posedge clk) begin
-    if(~reset_n) begin
-      for(int i=0; i<`N; i++) begin
-        f_measure[i] <= 0;
-      end
-    end else begin
-      for(int i=0; i<`N; i++) begin
-        f_measure[i] <= 1;
-      end
-    end
-  end
-  
-  // Valid Flag Generation
+  // RANDOM FLAG:  Valid
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(posedge clk) begin
     if(~reset_n) begin
@@ -247,10 +208,9 @@ module ENoC_Router_tb;
       end
     end else begin
       for(int i=0; i<`N; i++) begin
-        if ($urandom_range((100/`PACKET_RATE)*`BURST_SIZE,1) == 1) begin
+        if ($urandom_range((100/`PACKET_RATE)*`PACKET_BURST_SIZE,1) == 1) begin
           f_data_val[i]    <= 1;
-          f_burst_count[i] <= `BURST_SIZE-1 + f_burst_count[i];
-          // f_burst_count[i] <= $urandom_range((`BURST_SIZE*2)-1,0) + f_burst_count[i];            
+          f_burst_count[i] <= `PACKET_BURST_SIZE-1 + f_burst_count[i];           
         end else if (f_burst_count[i] > 0) begin
           f_data_val[i]    <= 1;
           f_burst_count[i] <= f_burst_count[i] - 1;
@@ -269,10 +229,10 @@ module ENoC_Router_tb;
       for(int i=0; i<`N; i++) begin
         s_i_data[i].data      <= 1; // Data field used to number packets
         `ifdef TORUS
-        s_i_data[i].x_source  <= i;
-        s_i_data[i].y_source  <= i;
-        s_i_data[i].x_dest    <= 0;
-        s_i_data[i].y_dest    <= 0;        
+        s_i_data[i].x_source  <= i; // Source field used to declare which input port packet was presented to
+        s_i_data[i].y_source  <= i; // Source field used to declare which input port packet was presented to
+        s_i_data[i].x_dest    <= 0; // Destination field indicates where packet is to be routed to
+        s_i_data[i].y_dest    <= 0; // Destination field indicates where packet is to be routed to      
         `else
         s_i_data[i].source    <= i; // Source field used to indicate which input port the data was sent
         s_i_data[i].dest      <= 0; // Route calculation is performed on the destination field.
@@ -290,13 +250,9 @@ module ENoC_Router_tb;
         `else
         s_i_data[i].dest      <= f_dest[i];
         `endif
-        // s_i_data[i].valid uses a count flag, the count flag doesn't consider what is happening during the current
-        // cycle, so when comparing with the flag, it needs to be checked that all packets have been counted.
-        s_i_data[i].valid     <= (f_port_i_data_count[i] < `PACKETS_PER_PORT - 1) 
-                                 || ((f_port_i_data_count[i] < `PACKETS_PER_PORT) && (s_i_data[i].valid != 1)) 
-                                 ? f_data_val[i] : 0;
+        s_i_data[i].valid     <= (f_port_i_data_count[i] < `PACKETS_PER_PORT) ? f_data_val[i] : 0;
         s_i_data[i].timestamp <= f_time + 1;
-        s_i_data[i].measure   <= f_measure[i];
+        s_i_data[i].measure   <= (f_port_i_data_count[i] > `WARM_UP_PACKETS_PER_PORT) ? 1 : 0;
       end
     end
   end
@@ -310,13 +266,178 @@ module ENoC_Router_tb;
     end
   end
   
-  // Test functions
+  // Packet Counters.
+  // ------------------------------------------------------------------------------------------------------------------
+  always_ff@(negedge clk) begin
+    if(~reset_n) begin
+      for(int i=0; i<`N; i++) begin
+        f_port_i_data_count[i] <= 0;
+        f_port_o_data_count[i] <= 0;        
+      end   
+    end else begin
+      for(int i=0; i<`N; i++) begin
+        f_port_i_data_count[i]  <= s_i_data[i].valid ? f_port_i_data_count[i] + 1 : f_port_i_data_count[i];
+        f_port_o_data_count[i]  <= o_data[i].valid   ? f_port_o_data_count[i] + 1 : f_port_o_data_count[i];
+      end
+    end
+  end
+  
+  always_comb begin
+    f_total_i_data_count = 0;
+    f_total_o_data_count = 0;
+    for(int i=0; i<`N; i++) begin  
+      f_total_i_data_count = f_port_i_data_count[i] + f_total_i_data_count;
+      f_total_o_data_count = f_port_o_data_count[i] + f_total_o_data_count;
+    end
+  end
+    
+  // TEST FUNCTION: Latency
+  // ------------------------------------------------------------------------------------------------------------------
+  initial begin
+    f_total_latency         = 0;
+    f_average_latency       = 0;
+    f_measured_packet_count = 0;
+    forever @(negedge clk) begin
+      for (int i=0; i<`M; i++) begin
+        if ((o_data_val[i] == 1) && (o_data[i].measure == 1)) begin
+          f_total_latency = f_total_latency + (f_time - o_data[i].timestamp);
+          f_measured_packet_count = f_measured_packet_count + 1;
+        end
+      end
+      if (f_total_latency != 0) begin
+        f_average_latency = f_total_latency/f_measured_packet_count;
+      end
+    end
+  end
+  
+  // TEST FUNCTION: Saturation
+  // ------------------------------------------------------------------------------------------------------------------
+  initial begin
+    forever @(negedge clk) begin
+      for (int i=0; i<`N; i++) begin
+        if (f_saturate[i] == 0) begin
+          $display("ABORT:  Input port %g saturated", i);
+          $display("");
+          f_test_complete = 1;
+          f_test_abort = 1;
+          f_test_fail = 1;
+        end
+      end
+    end
+  end
+  
+  // TEST FUNCTION: Routing
+  // ------------------------------------------------------------------------------------------------------------------
+  initial begin
+    f_routing_fail_count = 0;
+    forever @(negedge clk) begin
+      for (int i=0; i<`M; i++) begin
+        if (o_data_val[i] == 1) begin
+          if ((o_data[i].x_dest > `X_LOC) && (i != 2)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 2", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest < `X_LOC) && (i != 4)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 4", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest == `X_LOC) && (o_data[i].y_dest > `Y_LOC) && (i != 1)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 1", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest == `X_LOC) && (o_data[i].y_dest < `Y_LOC) && (i != 3)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 3", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest == `X_LOC) && (o_data[i].y_dest == `Y_LOC) && (i != 0)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 0", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end
+        end
+      end
+    end
+  end
+  
+  // TEST FUNCTION: Comparing packets in and out.  In this case, every packet is accounted for, not just the ones for
+  // which latency will be measured
   // ------------------------------------------------------------------------------------------------------------------ 
   initial begin
-    $display("Test starting. %5d packets will be sent at an offered traffic ratio of %5d", `PACKETS_PER_PORT*`N, `PACKET_RATE);
+    f_cooldown_count = 0;
     forever @(negedge clk) begin
-      if (f_total_o_data_count == `PACKETS_PER_PORT*`N) begin
-        $display("Recieved all %5d packets", `PACKETS_PER_PORT*`N);
+      if (f_total_o_data_count > `PACKETS_PER_PORT*`N) begin
+        if (f_cooldown_count < 100) begin
+          f_cooldown_count = f_cooldown_count + 1;
+        end else begin
+          f_txrx = 0;
+          f_test_complete = 1;
+          f_test_fail = 1;
+        end
+      end else if (f_total_o_data_count == `PACKETS_PER_PORT*`N) begin
+        if (f_cooldown_count < 100) begin
+          f_cooldown_count = f_cooldown_count + 1;
+        end else begin
+          f_txrx = 1;
+          f_test_complete = 1;
+        end
+      end else if (o_data_val == 0) begin
+        if (f_cooldown_count <100) begin
+          f_cooldown_count = f_cooldown_count + 1;
+        end else begin
+          f_txrx = 0;
+          f_test_complete = 1;
+        end
+      end else begin
+        f_cooldown_count = 0;           
+      end
+    end
+  end
+
+  // TEST CONTROL
+  // ------------------------------------------------------------------------------------------------------------------   
+  initial begin
+    $display("");
+    $display("%g packets will be sent at an offered traffic ratio of %g%%", `PACKETS_PER_PORT*`N, `PACKET_RATE);
+    $display("To ensure the network is steady, latency measurements will not be performed on the first %g packets sent on each port", `WARM_UP_PACKETS_PER_PORT);
+    $display("The simulated downstream routers will accept data %g%% of the time", `DOWNSTREAM_EN_RATE);
+    $display("");
+    $display("TEST START");
+    $display("----------");
+    $display ("");
+    forever@(posedge clk) begin
+      if (f_test_complete) begin
+        if (f_test_abort) begin
+          $display("Test aborted after %g cycles", f_time);
+        end else begin
+          $display("Test completed after %g cycles", f_time);
+        end
+        $display("");
+        $display("TEST SUMMARY");
+        $display("------------");
+        if (f_test_fail) begin
+          $display("");
+          $display("Test Failed!");
+        end else begin
+          $display("");
+          $display("All Tests Passed!");
+        end
+        if (f_txrx == 1) begin
+          $display("TXRX PASS: Transmitted %g packets, received %g packets", f_total_i_data_count, f_total_o_data_count);
+        end else begin
+          $display("TXRX FAIL: Transmitted %g packets, received %g packets", f_total_i_data_count, f_total_o_data_count);       
+        end
+        if (f_routing_fail_count > 0) begin
+          $display("ROUTING FAIL: %g routing failures", f_routing_fail_count);
+        end else begin
+          $display("ROUTING PASS: no output packets were misrouted");
+        end
+        $display("AVERAGE LATENCY: %g cycles", f_average_latency);
+        $display("");
         $finish;
       end
     end
