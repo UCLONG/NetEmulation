@@ -76,43 +76,46 @@ module ENoC_Network
     // ----------------------------------------------------------------------------------------------------------------
     
     always_comb begin
-      for(int i=0; i<NODES; i++) begin
-      
-        // Router input 'data' 
-        //   -- Taken from upstream router output data and upstream node output data
-        l_datain[i][0] = i_data[i];                                                  // Local input
-        l_datain[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_dataout[i+X_NODES][3] : 'z; // North Input
-        l_datain[i][2] = (((i + 1)% X_NODES) == 0) ? 'z : l_dataout[i+1][4];         // East Input
-        l_datain[i][3] = (i > (X_NODES-1)) ? l_dataout[i-X_NODES][1] : 'z;           // South Input
-        l_datain[i][4] = ((i % X_NODES) == 0) ? 'z : l_dataout[i-1][2];              // West Input
-        l_datain[i][5] =
-        l_datain[i][6] =
-        
-        // Router input 'data valid'
-        //   -- Taken from upstream router output data valid and upstream node output data valid
-        l_datain_val[i][0] = i_data_val[i];                                                  // Local input
-        l_datain_val[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_dataout_val[i+X_NODES][3] : 'z; // North Input
-        l_datain_val[i][2] = (((i + 1)% X_NODES) == 0) ? 'z : l_dataout_val[i+1][4];         // East Input
-        l_datain_val[i][3] = (i > (X_NODES-1)) ? l_dataout_val[i-X_NODES][1] : 'z;           // South Input
-        l_datain_val[i][4] = ((i % X_NODES) == 0) ? 'z : l_dataout_val[i-1][2];              // West Input  
-        l_datain_val[i][5] =
-        l_datain_val[i][6] =
-        
-        // Router input 'enable'
-        //   -- Taken from upstream router output data enable and upstream node output data enable
-        l_i_en[i][0] = i_en[i];                                                 // Local input
-        l_i_en[i][1] = (i < (X_NODES*(Y_NODES-1))) ? l_o_en[i+X_NODES][3] : 'z; // North Input
-        l_i_en[i][2] = (((i + 1)% X_NODES) == 0) ? 'z : l_o_en[i+1][4];         // East Input
-        l_i_en[i][3] = (i > (X_NODES-1)) ? l_o_en[i-X_NODES][1] : 'z;           // South Input
-        l_i_en[i][4] = ((i % X_NODES) == 0) ? 'z : l_o_en[i-1][2];              // West Input
-        l_i_en[i][5] =
-        l_i_en[i][6] =        
-      
-        // Node inputs, i.e network outputs
-        o_data[i]     = l_dataout[i][0];
-        o_data_val[i] = l_dataout_val[i][0];
-        o_en[i]       = l_o_en[i][0];
     
+      for (int i=0; i<(X_NODES*Y_NODES)*(Z_NODES-1); i + (X_NODES*Y_NODES)) begin      
+        for(int j=0; j<X_NODES*Y_NODES; j++) begin
+        
+          // Router input 'data' 
+          //   -- Taken from upstream router output data and upstream node output data
+          l_datain[i+j][0] = i_data[i+j];                                                  // Local input
+          l_datain[i+j][1] = (j < (X_NODES*(Y_NODES-1))) ? l_dataout[i+j+X_NODES][3] : '0; // North Input
+          l_datain[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_dataout[i+j+1][4];         // East Input
+          l_datain[i+j][3] = (j > (X_NODES-1)) ? l_dataout[i+j-X_NODES][1] : '0;           // South Input
+          l_datain[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_dataout[i+j-1][2];              // West Input
+          l_datain[i+j][5] =
+          l_datain[i+j][6] =
+          
+          // Router input 'data valid'
+          //   -- Taken from upstream router output data valid and upstream node output data valid
+          l_datain_val[i+j][0] = i_data_val[i+j];                                                  // Local input
+          l_datain_val[i+j][1] = (j < (X_NODES*(Y_NODES-1))) ? l_dataout_val[i+j+X_NODES][3] : '0; // North Input
+          l_datain_val[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_dataout_val[i+j+1][4];         // East Input
+          l_datain_val[i+j][3] = (j > (X_NODES-1)) ? l_dataout_val[i+j-X_NODES][1] : '0;           // South Input
+          l_datain_val[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_dataout_val[i+j-1][2];              // West Input  
+          l_datain_val[i+j][5] =
+          l_datain_val[i+j][6] =
+          
+          // Router input 'enable'
+          //   -- Taken from upstream router output data enable and upstream node output data enable
+          l_i_en[i+j][0] = i_en[i+j];                                                 // Local input
+          l_i_en[i+j][1] = (j < (X_NODES*(Y_NODES-1))) ? l_o_en[i+j+X_NODES][3] : '0; // North Input
+          l_i_en[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_o_en[i+j+1][4];         // East Input
+          l_i_en[i+j][3] = (j > (X_NODES-1)) ? l_o_en[i+j-X_NODES][1] : '0;           // South Input
+          l_i_en[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_o_en[i+j-1][2];              // West Input
+          l_i_en[i+j][5] =
+          l_i_en[i+j][6] =        
+        
+          // Node inputs, i.e network outputs
+          o_data[i+j]     = l_dataout[i+j][0];
+          o_data_val[i+j] = l_dataout_val[i+j][0];
+          o_en[i+j]       = l_o_en[i+j][0];
+      
+        end
       end
     end
   
