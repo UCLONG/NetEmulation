@@ -27,6 +27,21 @@ module LIB_Allocator_InputFirst_iSLIP
          
   // Input Arbitration
   // ------------------------------------------------------------------------------------------------------------------
+
+  `ifdef FPPE
+
+  genvar i;
+  generate
+    for(i=0; i<N; i++) begin : INPUT_ARBITRATION
+      LIB_FPPE #(.N(M), LOOK_AHEAD(0))
+        gen_LIB_FPPE (.i_request(i_request[i]),
+                      .i_priority(l_input_priority[i]),
+                      .o_grant(l_input_grant[i]));
+    end
+  endgenerate
+  
+  `else
+  
   genvar i;
   generate
     for(i=0; i<N; i++) begin : INPUT_ARBITRATION
@@ -36,6 +51,8 @@ module LIB_Allocator_InputFirst_iSLIP
                      .o_grant(l_input_grant[i]));
     end
   endgenerate
+  
+  `endif
   
   // transposition of the input arbitration grant for input into the Output arbitration stage.
   always_comb begin
@@ -49,6 +66,22 @@ module LIB_Allocator_InputFirst_iSLIP
   
   // Output Arbitration
   // ------------------------------------------------------------------------------------------------------------------
+
+  `ifdef FPPE
+  
+  generate 
+    for(i=0; i<M; i++) begin : OUTPUT_ARBITRATION
+      LIB_PPE_RoundRobin #(.N(N), LOOK_AHEAD(0))
+        gen_LIB_PPE_RoundRobin (.clk,
+                                .ce,
+                                .reset_n,
+                                .i_request(l_intermediate[i]),
+                                .o_grant(o_grant[i]));
+    end
+  endgenerate
+  
+  `else
+
   generate 
     for(i=0; i<M; i++) begin : OUTPUT_ARBITRATION
       LIB_PPE_RoundRobin #(.N(N))
@@ -59,6 +92,8 @@ module LIB_Allocator_InputFirst_iSLIP
                                 .o_grant(o_grant[i]));
     end
   endgenerate
+  
+  `endif
   
   // iSLIP priority generation.  Updates the priority of the input arbiters only if that input was successful in
   //  the last round of output arbitration.

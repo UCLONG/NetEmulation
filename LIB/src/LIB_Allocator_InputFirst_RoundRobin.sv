@@ -26,6 +26,22 @@ module LIB_Allocator_InputFirst_RoundRobin
          
   // Input Arbitration
   // ------------------------------------------------------------------------------------------------------------------
+  `ifdef FPPE
+
+  genvar i;
+  generate
+    for(i=0; i<N; i++) begin : INPUT_ARBITRATION
+      LIB_FPPE_RoundRobin #(.N(M), .Look_Ahead(0))
+        gen_LIB_FPPE_RoundRobin (.clk,
+                                 .ce,
+                                 .reset_n,
+                                 .i_request(i_request[i]),
+                                 .o_grant(l_input_grant[i]));
+    end
+  endgenerate
+  
+  `else
+  
   genvar i;
   generate
     for(i=0; i<N; i++) begin : INPUT_ARBITRATION
@@ -38,6 +54,8 @@ module LIB_Allocator_InputFirst_RoundRobin
     end
   endgenerate
   
+  `endif
+  
   // transposition of the input arbitration grant for input into the Output arbitration stage.
   always_comb begin
     for(int i=0; i<M; i++) begin
@@ -49,6 +67,21 @@ module LIB_Allocator_InputFirst_RoundRobin
   
   // Output Arbitration
   // ------------------------------------------------------------------------------------------------------------------
+  `ifdef FPPE
+
+  generate
+    for(i=0; i<M; i++) begin : OUTPUT_ARBITRATION
+      LIB_FPPE_RoundRobin #(.N(N), .Look_Ahead(0))
+        gen_LIB_FPPE_RoundRobin (.clk,
+                                 .ce,
+                                 .reset_n,
+                                 .i_request(l_intermediate[i]),
+                                 .o_grant(o_grant[i]));
+    end
+  endgenerate
+  
+  `else
+  
   generate
     for(i=0; i<M; i++) begin : OUTPUT_ARBITRATION
       LIB_PPE_RoundRobin #(.N(N))
@@ -59,5 +92,7 @@ module LIB_Allocator_InputFirst_RoundRobin
                                 .o_grant(o_grant[i]));
     end
   endgenerate
+  
+  `endif
   
 endmodule
