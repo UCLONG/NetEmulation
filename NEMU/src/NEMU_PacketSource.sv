@@ -16,6 +16,8 @@ module NEMU_PacketSource(
   input logic reset_n,
   input logic [31:0] i_timestamp,
   input logic i_net_full,
+  input integer SEED,
+  input integer LOAD,
   output packet_t o_pkt_out,
   output logic o_input_fifo_error);
   
@@ -27,9 +29,16 @@ module NEMU_PacketSource(
   logic [31:0] l_r32 /* synthesis keep */;
   logic [39:0] l_fifo_din, l_fifo_dout;
   logic l_wr_en, l_rd_en, l_empty, l_full;
-  integer SEED = (PORT_NO+1) *5;
+  //integer SEED = (PORT_NO+1) *5;
+
   integer R;
+  integer SEED_DEST;
+  integer RATE;
   //logic [15:0] pkt_count;
+  always_comb begin
+    SEED_DEST = SEED*(PORT_NO+1);
+    RATE = (32'd4294967295/(32'd100*`SLOT_SIZE))*LOAD;
+  end
   
 // Generate random destination using a shift regsister.  This was originally written 
 // so that it could be synthesised, but it has issues, so the current version uses
@@ -42,11 +51,11 @@ module NEMU_PacketSource(
 			
 	// Generate random numbers for packet generation
   
-  NEMU_RandomNoGen random(i_clk, reset_n, l_destRand);
+  NEMU_RandomNoGen random(i_clk, reset_n, SEED_DEST, l_destRand);
   
 	always_ff @(posedge i_clk or posedge reset_n)
 		if (reset_n) begin
-			l_r32 <= (2^32)-(`SEED * (PORT_NO+1));
+			l_r32 <= (2^32)-(SEED_DEST);
 			l_dest <= 0;
 		end else begin	
 			l_r32 <= {l_r32[30:0], (l_r32[0] ^ l_r32[1] ^ l_r32[21] ^ l_r32[31])};		
@@ -60,7 +69,7 @@ module NEMU_PacketSource(
 	   if (reset_n) begin
 	     l_wr_en	<= 0;
 	   end else
-	     if (l_r32< `RATE) begin  // constant is 2^32, maximum vale of 32-bit shift register
+	     if (l_r32< RATE) begin  // constant is 2^32, maximum vale of 32-bit shift register
           l_wr_en <= 1;
           l_fifo_din <= {l_dest, i_timestamp};
 	     end else 
@@ -73,7 +82,7 @@ module NEMU_PacketSource(
     if (reset_n) begin
       l_wr_en	<= 0;
     end else
-      if (l_r32<`RATE && l_timestamp > 600) begin
+      if (l_r32<RATE && l_timestamp > 600) begin
         if (random == 1 || random == 4) // No. of sequences = 2^n-1 = 2^3-1 = 7 => 2/7 ~= 30% 
         begin
           if (middle == 4 || middle == 2 || middle == 6 || middle == 7 && port_no != 9)
@@ -113,7 +122,7 @@ module NEMU_PacketSource(
        begin
          if (PORT_NO == 1 && l_timestamp > 600) // Stream between nodes 1 and 10
            begin
-             if (l_r32 < `STREAMRATE*`RATE) // Rate can be modified in config.sv
+             if (l_r32 < `STREAMRATE*RATE) // Rate can be modified in config.sv
                begin
                  l_wr_en <= 1;
                  l_fifo_din <= {10, l_timestamp}; // Destination set as router 10, source 1
@@ -123,7 +132,7 @@ module NEMU_PacketSource(
            end
          else // Random traffic on the rest of the network
            begin
-             if (l_r32<`RATE && l_timestamp > 600)
+             if (l_r32<RATE && l_timestamp > 600)
                begin
                  l_wr_en <= 1;
                  l_fifo_din <= {l_dest, l_timestamp};

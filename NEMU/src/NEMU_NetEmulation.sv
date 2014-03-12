@@ -52,6 +52,7 @@ module NEMU_NetEmulation ();
   
   logic clk;
   logic [31:0] timestamp;
+  logic [31:0] timecounter;
   logic measure;
   logic source_on;
   logic sendData;
@@ -64,6 +65,12 @@ module NEMU_NetEmulation ();
   genvar i;
   logic serialTX;
   logic dataSent;
+  integer file;
+  logic [31:0] total_pkt_count;
+  parameter SEED = 1365;
+  parameter LOAD = 80; //in %
+  
+
   
 
   //////////////////////////////////////////////////////////////////////
@@ -74,16 +81,16 @@ module NEMU_NetEmulation ();
   // Instantiate pkt_sources
    generate for (i=0;i<`PORTS;i++)
       begin: source_loop
-         NEMU_PacketSource #(i) pkts (clk, (rst | (!source_on)), timestamp, net_full[i], pkt_in[i], input_fifo_error[i]);
+         NEMU_PacketSource #(i) pkts (clk, (rst | (!source_on)), timestamp, net_full[i], SEED, LOAD, pkt_in[i], input_fifo_error[i]);
       end
    endgenerate
   
 
-  NEMU_PacketSink sinks (clk, rst, pkt_out, pkt_in, timestamp, input_fifo_error, net_full, measure, latency, pkt_count_rx, pkt_count_tx);  
+  NEMU_PacketSink sinks (clk, rst, pkt_out, pkt_in, timestamp, input_fifo_error, net_full, measure, latency, pkt_count_rx, pkt_count_tx, total_pkt_count);  
   
-
+  `ifdef SYNTHESIS  
   NEMU_SerialPortWrapper SerialPortWrapper(clk, rst, latency, pkt_count_rx, pkt_count_tx, sendData, dataSent, serialTX); 
-  
+  `endif
   
   // Timestamp counter
   always_ff @(posedge clk)
@@ -124,45 +131,51 @@ module NEMU_NetEmulation ();
   end
   
   // Generate reset
-  initial begin
-    rst = 1;
-    measure = 0;
-    sendData = 0;
-    source_on = 1;
-    
-      `ifdef VCD_PATH    // Open VCD file
-	   $display("Setting up VCD file\n");
-        $dumpfile("synth/vcd/netemulation.vcd");
-        $dumpvars(0,`VCD_PATH);
-      `endif
-      
-    #(100ns)
-    rst = 0;
-    #(`WARMUP_PERIOD) 
-    $display("Starting measurement period at simulation time %t.\n", $realtime);
-    measure = 1;
-    
-    `ifdef VCD      // Start VCD dump
-      $dumpon;
-    `endif  
-    
-    #(`MEASURE_PERIOD)
-    $display("Ending measurement period at simulation time %t.\n", $realtime);
-    source_on = 0;
-    
-    `ifdef VCD_FILE      // End VCD dump
-      $dumpoff;
-    `endif
-    
-    #(`COOLDOWN_PERIOD)
-    measure = 0;
-    #10us
-    sendData = 1;
-    //not working
-    #20us
-    $finish;
- 
+
+initial begin
+  rst = 1;
+  #(100ns)
+  rst = 0;
+  //file = $fopen("latency.txt");
+end
+
+always_ff @(posedge clk) begin
+  if (rst) begin
+    source_on <= 1;
+    measure <= 0;
+    sendData <= 0;
+    timecounter <= 0;
   end
+  if (total_pkt_count < `WARMUP_PERIOD_PKT) begin
+    `ifdef BATCH_ANALYSIS_ENABLE 
+    measure <= 1;
+    `else
+    measure <= 0;
+    `endif
+    sendData <= 0;
+  end
+  if (total_pkt_count > `WARMUP_PERIOD_PKT && total_pkt_count <= `MEASURE_PERIOD_PKT) begin
+    measure <= 1;
+    sendData <= 0;
+  end
+  if (total_pkt_count > `MEASURE_PERIOD_PKT) begin
+   source_on <= 0;
+    if (timecounter < `COOLDOWN_PERIOD) begin
+      timecounter <= timecounter + 1;
+    end
+    if (timecounter == `COOLDOWN_PERIOD) begin
+      measure <= 0;
+      sendData <= 1;
+      timecounter <= timecounter + 1;
+      $display("Ending measurement period at simulation time %t.\n", $realtime);
+
+    end
+    if (timecounter == (`COOLDOWN_PERIOD + 1)) begin
+      $stop;
+    end
+  end
+  
+end
   
 `endif
   

@@ -7,11 +7,11 @@
 `include "functions.sv"
 
 // Network parameters 
-`define PORTS       4        // Currently only works with power of 2 : to be fixed
+`define PORTS       16        // Currently only works with power of 2 : to be fixed
 `define FIFO_DEPTH  8
-`define PAYLOAD     64        // Packet payload in bits
+`define PAYLOAD     32        // Packet payload in bits
 `define PKT_SIZE    (`PAYLOAD+(2*log2(`PORTS))+1)
-`define PORT_BITS   2
+`define PORT_BITS   log2(`PORTS)
 
 // Optical timing parameters
 `define SLOT_SIZE   8         // For fixed slot size networks, in clock cycles
@@ -20,13 +20,13 @@
 
 // Simulation timing parameters
 `define CLK_PERIOD      5ns
-`define WARMUP_PERIOD   1us
-`define MEASURE_PERIOD  10us
-`define COOLDOWN_PERIOD 1us
+`define WARMUP_PERIOD_PKT   100 //in pkts
+`define MEASURE_PERIOD_PKT  5000 //in pkts
+`define COOLDOWN_PERIOD 1000 //in clock cycles 
 
 // Load parameters
 `define SEED        13649
-`define LOAD        30           // in %
+//`define LOAD        80           // in %
 
 `define RATE        (4294967295/(100*`SLOT_SIZE))*`LOAD    // This is for a time slotted optical network
                                                            // Max load is 2^32-1 = 4294967295 (1 pkt per port per clock cycle)
@@ -51,6 +51,8 @@
 
 // Comment this out for simulation
 //`define SYNTHESIS
+`define METRICS_ENABLE //should be defined when simulating 
+`define BATCH_ANALYSIS_ENABLE //only defined if batch analysis is to be performed
 
 // Optical Network Parameters
 `define VC        // Implements virtula channel queues and separable allocator
