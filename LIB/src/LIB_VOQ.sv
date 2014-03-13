@@ -8,6 +8,7 @@
 // Uses        : LIB_FIFO_packet_t.sv,
 // --------------------------------------------------------------------------------------------------------------------
 
+`include "ENoC_Functions.sv" 
 `include "ENoC_Config.sv" // Change this config file to wherever packet_t is declared
 
 module LIB_VOQ

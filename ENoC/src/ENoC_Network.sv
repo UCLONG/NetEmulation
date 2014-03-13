@@ -184,7 +184,7 @@ module ENoC_Network
     // router number = X_NODES-1 at (x,y) = (X_NODES-1, 0)
     // router number = X_NODES   at (x,y) = (0,1)
   
-    genvar y, x;
+    genvar z, y, x;
     generate
     for (z=0; z<Z_NODES; z++) begin : GENERATE_Z_ROUTERS
       for (y=0; y<Y_NODES; y++) begin : GENERATE_Y_ROUTERS

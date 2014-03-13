@@ -16,15 +16,16 @@
 // --------------------------------------------------------------------------------------------------------------------
 // Torus specific test parameters
 // --------------------------------------------------------------------------------------------------------------------
-`define DEGREE 5
-`define X_LOC 4
-`define Y_LOC 4
+`define DEGREE 7
+`define X_LOC 2
+`define Y_LOC 2
+`define Z_LOC 2
  
 // -------------------------------------------------------------------------------------------------------------------- 
 // Non-torus specific test parameters
 // --------------------------------------------------------------------------------------------------------------------
-`define N 5
-`define M 5
+`define N 7
+`define M 7
 
 // --------------------------------------------------------------------------------------------------------------------
 // General test parameters
@@ -72,6 +73,7 @@ module ENoC_Router_tb;
   `ifdef TORUS  
     logic [0:`N-1][log2(`X_NODES)-1:0] f_x_dest;
     logic [0:`N-1][log2(`Y_NODES)-1:0] f_y_dest;
+    logic [0:`N-1][log2(`Z_NODES)-1:0] f_z_dest;
   `else
     logic [0:`N-1][log2(`NODES)-1:0] f_dest;
   `endif
@@ -101,8 +103,10 @@ module ENoC_Router_tb;
 
   ENoC_Router #(.X_NODES(`X_NODES), 
                 .Y_NODES(`Y_NODES),
+                .Z_NODES(`Z_NODES),
                 .X_LOC(`X_LOC),
                 .Y_LOC(`Y_LOC),
+                .Z_LOC(`Z_LOC),
                 .INPUT_QUEUE_DEPTH(`INPUT_QUEUE_DEPTH),
                 .N(`N),
                 .M(`M))
@@ -158,7 +162,7 @@ module ENoC_Router_tb;
   genvar i;
   generate
     for (i=0; i<`N; i++) begin : GENERATE_INPUT_QUEUES
-      LIB_FIFO_packet_t #(.DEPTH(`INPUT_QUEUE_DEPTH))
+      LIB_FIFO_packet_t #(.DEPTH(`INPUT_QUEUE_DEPTH*4))
         gen_LIB_FIFO_packet_t (.clk,
                                .ce(1'b1),
                                .reset_n,
@@ -182,6 +186,7 @@ module ENoC_Router_tb;
       `ifdef TORUS
         f_x_dest[i] <= 0;
         f_y_dest[i] <= 0;
+        f_z_dest[i] <= 0;
       `else
         f_dest[i] <= 0;
       `endif
@@ -191,6 +196,7 @@ module ENoC_Router_tb;
       `ifdef TORUS
         f_x_dest[i] <= $urandom_range(`X_NODES-1);
         f_y_dest[i] <= $urandom_range(`Y_NODES-1);
+        f_z_dest[i] <= $urandom_range(`Z_NODES-1);
       `else
         f_dest[i] <= $urandom_range(`NODES-1);
       `endif
@@ -231,8 +237,10 @@ module ENoC_Router_tb;
         `ifdef TORUS
         s_i_data[i].x_source  <= i; // Source field used to declare which input port packet was presented to
         s_i_data[i].y_source  <= i; // Source field used to declare which input port packet was presented to
+        s_i_data[i].z_source  <= i; // Source field used to declare which input port packet was presented to        
         s_i_data[i].x_dest    <= 0; // Destination field indicates where packet is to be routed to
-        s_i_data[i].y_dest    <= 0; // Destination field indicates where packet is to be routed to      
+        s_i_data[i].y_dest    <= 0; // Destination field indicates where packet is to be routed to 
+        s_i_data[i].z_dest    <= 0; // Destination field indicates where packet is to be routed to         
         `else
         s_i_data[i].source    <= i; // Source field used to indicate which input port the data was sent
         s_i_data[i].dest      <= 0; // Route calculation is performed on the destination field.
@@ -247,6 +255,7 @@ module ENoC_Router_tb;
         `ifdef TORUS
         s_i_data[i].x_dest    <= f_x_dest[i];
         s_i_data[i].y_dest    <= f_y_dest[i];
+        s_i_data[i].z_dest    <= f_z_dest[i];
         `else
         s_i_data[i].dest      <= f_dest[i];
         `endif
@@ -353,7 +362,17 @@ module ENoC_Router_tb;
             $display("");
             f_routing_fail_count = f_routing_fail_count + 1;
             f_test_fail  = 1;
-          end else if ((o_data[i].x_dest == `X_LOC) && (o_data[i].y_dest == `Y_LOC) && (i != 0)) begin
+          end else if ((o_data[i].x_dest == `X_LOC) && (o_data[i].y_dest == `Y_LOC) && (o_data[i].z_dest > `Z_LOC) && (i != 6)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 6", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest == `X_LOC) && (o_data[i].y_dest == `Y_LOC) && (o_data[i].z_dest < `Z_LOC) && (i != 5)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 5", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest == `X_LOC) && (o_data[i].y_dest == `Y_LOC) && (o_data[i].z_dest == `Z_LOC) && (i != 0)) begin
             $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 0", f_routing_fail_count + 1, f_time, i);
             $display("");
             f_routing_fail_count = f_routing_fail_count + 1;
@@ -406,8 +425,8 @@ module ENoC_Router_tb;
     $display("To ensure the network is steady, latency measurements will not be performed on the first %g packets sent on each port", `WARM_UP_PACKETS_PER_PORT);
     $display("The simulated downstream routers will accept data %g%% of the time", `DOWNSTREAM_EN_RATE);
     $display("");
-    $display("TEST START");
-    $display("----------");
+    $display("TEST LOG");
+    $display("--------");
     $display ("");
     forever@(posedge clk) begin
       if (f_test_complete) begin
@@ -421,7 +440,7 @@ module ENoC_Router_tb;
         $display("------------");
         if (f_test_fail) begin
           $display("");
-          $display("Test Failed!");
+          $display("Test Failed!  See test log above for details.");
         end else begin
           $display("");
           $display("All Tests Passed!");
