@@ -97,8 +97,8 @@ module ENoC_Network
           l_datain_val[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_dataout_val[i+j+1][4];                         // East Input
           l_datain_val[i+j][3] = (j > (X_NODES-1)) ? l_dataout_val[i+j-X_NODES][1] : '0;                           // South Input
           l_datain_val[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_dataout_val[i+j-1][2];                              // West Input  
-          l_datain_val[i+j][5] = (i+j <X_NODES*Y_NODES) ? '0 : l_datain_val[i+j-(X_NODES*Y_NODES)][6];             // Top Input
-          l_datain_val[i+j][6] = (i+j <X_NODES*Y_NODES*(Z_NODES-1)) ? l_datain_val[i+j+(X_NODES*Y_NODES)][5] : '0; // Bottom Input
+          l_datain_val[i+j][5] = (i+j <X_NODES*Y_NODES) ? '0 : l_dataout_val[i+j-(X_NODES*Y_NODES)][6];             // Top Input
+          l_datain_val[i+j][6] = (i+j <X_NODES*Y_NODES*(Z_NODES-1)) ? l_dataout_val[i+j+(X_NODES*Y_NODES)][5] : '0; // Bottom Input
           
           // Router input 'enable'
           //   -- Taken from upstream router output data enable and upstream node output data enable
@@ -107,8 +107,8 @@ module ENoC_Network
           l_i_en[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_o_en[i+j+1][4];                                // East Input
           l_i_en[i+j][3] = (j > (X_NODES-1)) ? l_o_en[i+j-X_NODES][1] : '0;                                  // South Input
           l_i_en[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_o_en[i+j-1][2];                                     // West Input
-          l_i_en[i+j][5] = (i+j <X_NODES*Y_NODES) ? '0 : l_datain_val[i+j-(X_NODES*Y_NODES)][6];             // Top Input
-          l_i_en[i+j][6] = (i+j <X_NODES*Y_NODES*(Z_NODES-1)) ? l_datain_val[i+j+(X_NODES*Y_NODES)][5] : '0; // Bottom Input       
+          l_i_en[i+j][5] = (i+j <X_NODES*Y_NODES) ? '0 : l_o_en[i+j-(X_NODES*Y_NODES)][6];             // Top Input
+          l_i_en[i+j][6] = (i+j <X_NODES*Y_NODES*(Z_NODES-1)) ? l_o_en[i+j+(X_NODES*Y_NODES)][5] : '0; // Bottom Input       
         
           // Node inputs, i.e network outputs
           o_data[i+j]     = l_dataout[i+j][0];
