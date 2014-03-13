@@ -6,6 +6,9 @@
 // Description : NxM packet_t CrossBar Switch. 
 // -------------------------------------------------------------------------------------------------------------------- 
 
+`include "ENoC_Functions.sv" // Change this function file to wherever log2 is declared
+`include "ENoC_Config.sv"   // Change this config file to wherever packet_t is declared
+
 module LIB_Switch_OneHot_packet_t
 
 #(parameter N, // Number of inputs
@@ -26,7 +29,7 @@ module LIB_Switch_OneHot_packet_t
   // Crossbar Switch.  Input selection is onehot.  
   // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
-    l_data = 'z;
+    l_data = '0;
     for(int i=0; i<M; i++) begin
       // compare i_sel with a one hot word to determine which input is required
       for(int j=0; j<N; j++) begin

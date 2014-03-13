@@ -8,6 +8,7 @@
 //             : Untested
 // --------------------------------------------------------------------------------------------------------------------
 
+`include "ENoC_Functions.sv"
 `include "ENoC_Config.sv" // Defines topology and whether or not routing should be adaptive
 
 module ENoC_RouteCalculator
@@ -33,20 +34,18 @@ module ENoC_RouteCalculator
     input  logic                     i_val,         // Valid destination
   
     output logic               [0:4] o_output_req); // One-hot request for the [c,n,e,s,w] output port
-	 
-	         logic               [0:4] l_output_req;
   
   `ifdef MESH
 
     // 2D Mesh Dimension Ordered Routing
     // --------------------------------------------------------------------------------------------------------------
     always_comb begin
-      l_output_req = '0;
+      o_output_req = '0;
       if(i_val) begin
-        if      (i_x_dest != X_LOC) l_output_req = (i_x_dest > X_LOC) ? 5'b0010000 : 5'b0000100;
-        else if (i_y_dest != Y_LOC) l_output_req = (i_y_dest > Y_LOC) ? 5'b0100000 : 5'b0001000;
-        else if (i_z_dest != Z_LOC) l_output_req = (i_z_dest > Z_LOC) ? 5'b0000001 : 5'b0000010;        
-        else                        l_output_req = 5'b1000000;
+        if      (i_x_dest != X_LOC) o_output_req = (i_x_dest > X_LOC) ? 5'b0010000 : 5'b0000100;
+        else if (i_y_dest != Y_LOC) o_output_req = (i_y_dest > Y_LOC) ? 5'b0100000 : 5'b0001000;
+        else if (i_z_dest != Z_LOC) o_output_req = (i_z_dest > Z_LOC) ? 5'b0000001 : 5'b0000010;        
+        else                        o_output_req = 5'b1000000;
       end
     end      
   
@@ -55,18 +54,18 @@ module ENoC_RouteCalculator
     // 2D Cube Dimension Ordered Routing.
     // --------------------------------------------------------------------------------------------------------------
     always_comb begin
-      l_output_req = '0;
+      o_output_req = '0;
       if(i_val) begin
         if (i_x_dest != X_LOC) begin
-          if (i_x_dest < X_LOC) l_output_req = ((X_LOC-i_x_dest)=<(X_NODES-(X_LOC-i_x_dest))) ? 5'b0000100 : 5'b0010000;
-          if (i_x_dest > X_LOC) l_output_req = ((i_x_dest-X_LOC)=<(X_NODES-(i_x_dest-X_LOC))) ? 5'b0010000 : 5'b0000100;
+          if (i_x_dest < X_LOC) o_output_req = ((X_LOC-i_x_dest)=<(X_NODES-(X_LOC-i_x_dest))) ? 5'b0000100 : 5'b0010000;
+          if (i_x_dest > X_LOC) o_output_req = ((i_x_dest-X_LOC)=<(X_NODES-(i_x_dest-X_LOC))) ? 5'b0010000 : 5'b0000100;
         end else if (i_y_dest != Y_LOC) begin
-          if (i_y_dest < Y_LOC) l_output_req = ((Y_LOC-i_y_dest)=<(Y_NODES-(Y_LOC-i_y_dest))) ? 5'b0001000 : 5'b0100000;
-          if (i_y_dest > Y_LOC) l_output_req = ((i_y_dest-Y_LOC)=<(Y_NODES-(i_y_dest-Y_LOC))) ? 5'b0100000 : 5'b0001000;
+          if (i_y_dest < Y_LOC) o_output_req = ((Y_LOC-i_y_dest)=<(Y_NODES-(Y_LOC-i_y_dest))) ? 5'b0001000 : 5'b0100000;
+          if (i_y_dest > Y_LOC) o_output_req = ((i_y_dest-Y_LOC)=<(Y_NODES-(i_y_dest-Y_LOC))) ? 5'b0100000 : 5'b0001000;
         end else if (i_z_dest != Z_LOC) begin
-          if (i_z_dest < Z_LOC) l_output_req = ((Z_LOC-i_z_dest)=<(Z_NODES-(Z_LOC-i_z_dest))) ? 5'b0000010 : 5'b0000001;
-          if (i_z_dest > Z_LOC) l_output_req = ((i_z_dest-Z_LOC)=<(Z_NODES-(i_z_dest-Z_LOC))) ? 5'b0000001 : 5'b0000010;
-        end else l_output_req = 5'b1000000;
+          if (i_z_dest < Z_LOC) o_output_req = ((Z_LOC-i_z_dest)=<(Z_NODES-(Z_LOC-i_z_dest))) ? 5'b0000010 : 5'b0000001;
+          if (i_z_dest > Z_LOC) o_output_req = ((i_z_dest-Z_LOC)=<(Z_NODES-(i_z_dest-Z_LOC))) ? 5'b0000001 : 5'b0000010;
+        end else o_output_req = 5'b1000000;
       end
     end
   

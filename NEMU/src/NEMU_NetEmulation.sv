@@ -31,6 +31,7 @@ module NEMU_NetEmulation (
 /////////////////////////////////////////////
 //////// MODULE DEF FOR SIMULATION ////////// 
 ///////////////////////////////////////////// 
+
 `else  
 module NEMU_NetEmulation ();
   
@@ -51,6 +52,7 @@ module NEMU_NetEmulation ();
   
   logic clk;
   logic [31:0] timestamp;
+  logic [31:0] timecounter;
   logic measure;
   logic source_on;
   logic sendData;
@@ -63,15 +65,14 @@ module NEMU_NetEmulation ();
   genvar i;
   logic serialTX;
   logic dataSent;
-  
-  `ifdef VHDL
-    logic [`PKT_SIZE*`PORTS-1:0] pkt_in_vhdl /* synthesis keep */;
-    logic [`PKT_SIZE*`PORTS-1:0] pkt_out_vhdl /* synthesis keep */;
-    integer k;
-  `endif
+  integer file;
+  logic [31:0] total_pkt_count;
+  parameter SEED = 1365;
+  parameter LOAD = 80; //in %
   
 
   
+
   //////////////////////////////////////////////////////////////////////
   ////////////// COMMON CODE FOR SIM AND SYNTH /////////////////////////
   //////////////////////////////////////////////////////////////////////  
@@ -80,17 +81,16 @@ module NEMU_NetEmulation ();
   // Instantiate pkt_sources
    generate for (i=0;i<`PORTS;i++)
       begin: source_loop
-         NEMU_PacketSource #(i) pkts (clk, (rst | (!source_on)), timestamp, net_full[i], pkt_in[i], input_fifo_error[i]);
+         NEMU_PacketSource #(i) pkts (clk, (rst | (!source_on)), timestamp, net_full[i], SEED, LOAD, pkt_in[i], input_fifo_error[i]);
       end
    endgenerate
   
-  // Instantiate pkt sink
-  NEMU_PacketSink sinks (clk, rst, pkt_out, pkt_in, timestamp, input_fifo_error, net_full, measure, latency, pkt_count_rx, pkt_count_tx);  
+
+  NEMU_PacketSink sinks (clk, rst, pkt_out, pkt_in, timestamp, input_fifo_error, net_full, measure, latency, pkt_count_rx, pkt_count_tx, total_pkt_count);  
   
- //MemoryWrapper24
- 
+  `ifdef SYNTHESIS  
   NEMU_SerialPortWrapper SerialPortWrapper(clk, rst, latency, pkt_count_rx, pkt_count_tx, sendData, dataSent, serialTX); 
-  
+  `endif
   
   // Timestamp counter
   always_ff @(posedge clk)
@@ -103,32 +103,13 @@ module NEMU_NetEmulation ();
   //////////////////////////////////////////////////////////////////////
   ////////////////////// INSTANTIATE NETWORK ///////////////////////////
   //////////////////////////////////////////////////////////////////////
-  `ifdef VHDL
-  
-  // VHDL network model
-  generate for (i=0;i<`PORTS;i++) begin
-    always_comb begin
-      pkt_in_vhdl[(i+1)*`PKT_SIZE-1:i*`PKT_SIZE] = {pkt_in[i].data, pkt_in[i].source, pkt_in[i].dest, pkt_in[i].valid};
-      pkt_out[i].data    = pkt_out_vhdl[(i+1)*`PKT_SIZE-1:i*`PKT_SIZE+(2*log2(`PORTS))+1];
-      pkt_out[i].source  = pkt_out_vhdl[i*`PKT_SIZE+(2*log2(`PORTS)):i*`PKT_SIZE+log2(`PORTS)+1];
-      pkt_out[i].dest    = pkt_out_vhdl[i*`PKT_SIZE+log2(`PORTS):i*`PKT_SIZE+1];
-      pkt_out[i].valid   = pkt_out_vhdl[i*`PKT_SIZE];
-    end
-  end
-  endgenerate
-  
-  network #(`PORTS, log2(`PORTS), `FIFO_DEPTH, `PAYLOAD) inst_net(clk, rst, pkt_in_vhdl, pkt_out_vhdl, full);
-  
-  `else
-  
+
   // SystemVerilog network model
   network inst_net(clk, rst, pkt_in, pkt_out, net_full);
   
-  `endif
+
   
-/////////////////////////////////////////////
-////////// CODE SPECIFIC TO SYNTH /////////// 
-///////////////////////////////////////////// 
+
 `ifdef SYNTHESIS  
 
   // Generate system clock  
@@ -150,45 +131,51 @@ module NEMU_NetEmulation ();
   end
   
   // Generate reset
-  initial begin
-    rst = 1;
-    measure = 0;
-    sendData = 0;
-    source_on = 1;
-    
-      `ifdef VCD_PATH    // Open VCD file
-	   $display("Setting up VCD file\n");
-        $dumpfile("synth/vcd/netemulation.vcd");
-        $dumpvars(0,`VCD_PATH);
-      `endif
-      
-    #(100ns)
-    rst = 0;
-    #(`WARMUP_PERIOD) 
-    $display("Starting measurement period at simulation time %t.\n", $realtime);
-    measure = 1;
-    
-    `ifdef VCD      // Start VCD dump
-      $dumpon;
-    `endif  
-    
-    #(`MEASURE_PERIOD)
-    $display("Ending measurement period at simulation time %t.\n", $realtime);
-    source_on = 0;
-    
-    `ifdef VCD_FILE      // End VCD dump
-      $dumpoff;
-    `endif
-    
-    #(`COOLDOWN_PERIOD)
-    measure = 0;
-    #10us
-    sendData = 1;
-    //not working
-    #50us
-    $finish;
- 
+
+initial begin
+  rst = 1;
+  #(100ns)
+  rst = 0;
+  //file = $fopen("latency.txt");
+end
+
+always_ff @(posedge clk) begin
+  if (rst) begin
+    source_on <= 1;
+    measure <= 0;
+    sendData <= 0;
+    timecounter <= 0;
   end
+  if (total_pkt_count < `WARMUP_PERIOD_PKT) begin
+    `ifdef BATCH_ANALYSIS_ENABLE 
+    measure <= 1;
+    `else
+    measure <= 0;
+    `endif
+    sendData <= 0;
+  end
+  if (total_pkt_count > `WARMUP_PERIOD_PKT && total_pkt_count <= `MEASURE_PERIOD_PKT) begin
+    measure <= 1;
+    sendData <= 0;
+  end
+  if (total_pkt_count > `MEASURE_PERIOD_PKT) begin
+   source_on <= 0;
+    if (timecounter < `COOLDOWN_PERIOD) begin
+      timecounter <= timecounter + 1;
+    end
+    if (timecounter == `COOLDOWN_PERIOD) begin
+      measure <= 0;
+      sendData <= 1;
+      timecounter <= timecounter + 1;
+      $display("Ending measurement period at simulation time %t.\n", $realtime);
+
+    end
+    if (timecounter == (`COOLDOWN_PERIOD + 1)) begin
+      $stop;
+    end
+  end
+  
+end
   
 `endif
   

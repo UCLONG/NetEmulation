@@ -6,6 +6,7 @@
 // Uses        : LIB_PPE_RoundRobin.sv, LIB_Allocator_InputFirst_RoundRobin.sv, LIB_Allocator_InputFirst_iSLIP.sv 
 // --------------------------------------------------------------------------------------------------------------------
 
+`include "ENoC_Functions.sv"
 `include "ENoC_Config.sv" // Defines whether or not VOQs are used, and whether or not to use iSLIP
 
 module ENoC_SwitchControl
@@ -22,7 +23,6 @@ module ENoC_SwitchControl
   
   output logic [0:M-1][0:N-1] o_output_grant); // Each output grants the [c,n,e,s,w] input 
   
-         logic [0:M-1][0:N-1] l_output_grant;
          logic [0:M-1][0:N-1] l_req_matrix;    // Packed requests for the [c,n,e,s,w] output
   
   `ifdef VOQ
@@ -48,7 +48,7 @@ module ENoC_SwitchControl
                                              .ce,
                                              .reset_n,
                                              .i_request(l_req_matrix),
-                                             .o_grant(l_output_grant));
+                                             .o_grant(o_output_grant));
     
     `else
 
@@ -57,7 +57,7 @@ module ENoC_SwitchControl
                                                   .ce,
                                                   .reset_n,
                                                   .i_request(l_req_matrix),
-                                                  .o_grant(l_output_grant));
+                                                  .o_grant(o_output_grant));
 
     `endif
 
@@ -85,7 +85,7 @@ module ENoC_SwitchControl
                                                             .ce,
                                                             .reset_n,
                                                             .i_request(l_req_matrix[i]),
-                                                            .o_grant(l_output_grant[i]));
+                                                            .o_grant(o_output_grant[i]));
       end
     endgenerate
 

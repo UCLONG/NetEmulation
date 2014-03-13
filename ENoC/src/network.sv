@@ -7,6 +7,7 @@
 // Notes       : Need better way of fitting X_NODES and Y_NODES, currently on works for perfect square.
 // --------------------------------------------------------------------------------------------------------------------
 
+`include "ENoC_Functions.sv"
 `include "ENoC_Config.sv"
 
 module network
@@ -36,7 +37,7 @@ module network
   always_comb begin
     for(int i=0; i<`NODES; i++) begin
       l_pkt_in[i] = pkt_in[i];
-      pkt_out[i] = l_pkt_out;
+      pkt_out[i] = l_pkt_out[i];
       l_i_data_val[i] = pkt_in[i].valid;
       net_full[i] = ~l_o_en[i];
     end
