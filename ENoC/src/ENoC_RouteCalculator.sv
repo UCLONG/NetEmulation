@@ -60,14 +60,14 @@ module ENoC_RouteCalculator
       o_output_req = '0;
       if(i_val) begin
         if (i_x_dest != X_LOC) begin
-          if (i_x_dest < X_LOC) o_output_req = ((X_LOC-i_x_dest)=<(X_NODES-(X_LOC-i_x_dest))) ? 7'b0000100 : 7'b0010000;
-          if (i_x_dest > X_LOC) o_output_req = ((i_x_dest-X_LOC)=<(X_NODES-(i_x_dest-X_LOC))) ? 7'b0010000 : 7'b0000100;
+          if (i_x_dest < X_LOC) o_output_req = ((X_LOC-i_x_dest)<=(X_NODES-1-(X_LOC-i_x_dest))) ? 7'b0000100 : 7'b0010000; 
+          if (i_x_dest > X_LOC) o_output_req = ((i_x_dest-X_LOC)<=(X_NODES-1-(i_x_dest-X_LOC))) ? 7'b0010000 : 7'b0000100;
         end else if (i_y_dest != Y_LOC) begin
-          if (i_y_dest < Y_LOC) o_output_req = ((Y_LOC-i_y_dest)=<(Y_NODES-(Y_LOC-i_y_dest))) ? 7'b0001000 : 7'b0100000;
-          if (i_y_dest > Y_LOC) o_output_req = ((i_y_dest-Y_LOC)=<(Y_NODES-(i_y_dest-Y_LOC))) ? 7'b0100000 : 7'b0001000;
+          if (i_y_dest < Y_LOC) o_output_req = ((Y_LOC-i_y_dest)<=(Y_NODES-1-(Y_LOC-i_y_dest))) ? 7'b0001000 : 7'b0100000;
+          if (i_y_dest > Y_LOC) o_output_req = ((i_y_dest-Y_LOC)<=(Y_NODES-1-(i_y_dest-Y_LOC))) ? 7'b0100000 : 7'b0001000;
         end else if (i_z_dest != Z_LOC) begin
-          if (i_z_dest < Z_LOC) o_output_req = ((Z_LOC-i_z_dest)=<(Z_NODES-(Z_LOC-i_z_dest))) ? 7'b0000010 : 7'b0000001;
-          if (i_z_dest > Z_LOC) o_output_req = ((i_z_dest-Z_LOC)=<(Z_NODES-(i_z_dest-Z_LOC))) ? 7'b0000001 : 7'b0000010;
+          if (i_z_dest < Z_LOC) o_output_req = ((Z_LOC-i_z_dest)<=(Z_NODES-1-(Z_LOC-i_z_dest))) ? 7'b0000010 : 7'b0000001;
+          if (i_z_dest > Z_LOC) o_output_req = ((i_z_dest-Z_LOC)<=(Z_NODES-1-(i_z_dest-Z_LOC))) ? 7'b0000001 : 7'b0000010;
         end else o_output_req = 7'b1000000;
       end
     end
