@@ -19,7 +19,7 @@ module ENoC_Network
     parameter integer Z_NODES = `Z_NODES,                    // Number of node layers
     parameter integer NODES   = `X_NODES*`Y_NODES*`Z_NODES,  // Total number of nodes
     parameter integer ROUTERS = `X_NODES*`Y_NODES*`Z_NODES,  // Total number of routers
-    parameter integer DEGREE  = 5,
+    parameter integer DEGREE  = 7,
   `else
     parameter integer NODES   = `NODES,              // Total number of nodes
     parameter integer ROUTERS = `ROUTERS,
@@ -77,38 +77,38 @@ module ENoC_Network
     
     always_comb begin
     
-      for (int i=0; i<(X_NODES*Y_NODES)*(Z_NODES-1); i + (X_NODES*Y_NODES)) begin      
+      for (int i=0; i<X_NODES*Y_NODES*(Z_NODES-1); i=i+(X_NODES*Y_NODES)) begin      
         for(int j=0; j<X_NODES*Y_NODES; j++) begin
         
           // Router input 'data' 
           //   -- Taken from upstream router output data and upstream node output data
-          l_datain[i+j][0] = i_data[i+j];                                                  // Local input
-          l_datain[i+j][1] = (j < (X_NODES*(Y_NODES-1))) ? l_dataout[i+j+X_NODES][3] : '0; // North Input
-          l_datain[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_dataout[i+j+1][4];         // East Input
-          l_datain[i+j][3] = (j > (X_NODES-1)) ? l_dataout[i+j-X_NODES][1] : '0;           // South Input
-          l_datain[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_dataout[i+j-1][2];              // West Input
-          l_datain[i+j][5] =
-          l_datain[i+j][6] =
+          l_datain[i+j][0] = i_data[i+j];                                                               // Local input
+          l_datain[i+j][1] = (j < (X_NODES*(Y_NODES-1))) ? l_dataout[i+j+X_NODES][3] : '0;              // North Input
+          l_datain[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_dataout[i+j+1][4];                      // East Input
+          l_datain[i+j][3] = (j > (X_NODES-1)) ? l_dataout[i+j-X_NODES][1] : '0;                        // South Input
+          l_datain[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_dataout[i+j-1][2];                           // West Input
+          l_datain[i+j][5] = (i+j <X_NODES*Y_NODES) ? '0 : l_dataout[i+j-(X_NODES*Y_NODES)];            // Top Input
+          l_datain[i+j][6] = (i+j <X_NODES*Y_NODES*(Z_NODES-1)) ? l_dataout[i+j+(X_NODES*Y_NODES)] : 0; // Bottom Input
           
           // Router input 'data valid'
           //   -- Taken from upstream router output data valid and upstream node output data valid
-          l_datain_val[i+j][0] = i_data_val[i+j];                                                  // Local input
-          l_datain_val[i+j][1] = (j < (X_NODES*(Y_NODES-1))) ? l_dataout_val[i+j+X_NODES][3] : '0; // North Input
-          l_datain_val[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_dataout_val[i+j+1][4];         // East Input
-          l_datain_val[i+j][3] = (j > (X_NODES-1)) ? l_dataout_val[i+j-X_NODES][1] : '0;           // South Input
-          l_datain_val[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_dataout_val[i+j-1][2];              // West Input  
-          l_datain_val[i+j][5] =
-          l_datain_val[i+j][6] =
+          l_datain_val[i+j][0] = i_data_val[i+j];                                                              // Local input
+          l_datain_val[i+j][1] = (j < (X_NODES*(Y_NODES-1))) ? l_dataout_val[i+j+X_NODES][3] : '0;             // North Input
+          l_datain_val[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_dataout_val[i+j+1][4];                     // East Input
+          l_datain_val[i+j][3] = (j > (X_NODES-1)) ? l_dataout_val[i+j-X_NODES][1] : '0;                       // South Input
+          l_datain_val[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_dataout_val[i+j-1][2];                          // West Input  
+          l_datain_val[i+j][5] = (i+j <X_NODES*Y_NODES) ? '0 : l_datain_val[i+j-(X_NODES*Y_NODES)];            // Top Input
+          l_datain_val[i+j][6] = (i+j <X_NODES*Y_NODES*(Z_NODES-1)) ? l_datain_val[i+j+(X_NODES*Y_NODES)] : 0; // Bottom Input
           
           // Router input 'enable'
           //   -- Taken from upstream router output data enable and upstream node output data enable
-          l_i_en[i+j][0] = i_en[i+j];                                                 // Local input
-          l_i_en[i+j][1] = (j < (X_NODES*(Y_NODES-1))) ? l_o_en[i+j+X_NODES][3] : '0; // North Input
-          l_i_en[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_o_en[i+j+1][4];         // East Input
-          l_i_en[i+j][3] = (j > (X_NODES-1)) ? l_o_en[i+j-X_NODES][1] : '0;           // South Input
-          l_i_en[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_o_en[i+j-1][2];              // West Input
-          l_i_en[i+j][5] =
-          l_i_en[i+j][6] =        
+          l_i_en[i+j][0] = i_en[i+j];                                                                    // Local input
+          l_i_en[i+j][1] = (j < (X_NODES*(Y_NODES-1))) ? l_o_en[i+j+X_NODES][3] : '0;                    // North Input
+          l_i_en[i+j][2] = (((j + 1)% X_NODES) == 0) ? '0 : l_o_en[i+j+1][4];                            // East Input
+          l_i_en[i+j][3] = (j > (X_NODES-1)) ? l_o_en[i+j-X_NODES][1] : '0;                              // South Input
+          l_i_en[i+j][4] = ((j % X_NODES) == 0) ? '0 : l_o_en[i+j-1][2];                                 // West Input
+          l_i_en[i+j][5] = (i+j <X_NODES*Y_NODES) ? '0 : l_datain_val[i+j-(X_NODES*Y_NODES)];            // Top Input
+          l_i_en[i+j][6] = (i+j <X_NODES*Y_NODES*(Z_NODES-1)) ? l_datain_val[i+j+(X_NODES*Y_NODES)] : 0; // Bottom Input       
         
           // Node inputs, i.e network outputs
           o_data[i+j]     = l_dataout[i+j][0];
@@ -186,22 +186,25 @@ module ENoC_Network
   
     genvar y, x;
     generate
-    for (y=0; y<Y_NODES; y++) begin : GENERATE_Y_ROUTERS
-      for(x=0; x<X_NODES; x++) begin : GENERATE_X_ROUTERS
-        ENoC_Router #(.X_NODES(X_NODES),
-                      .Y_NODES(Y_NODES),
-                      .X_LOC(x),.Y_LOC(y),
-                      .INPUT_QUEUE_DEPTH(INPUT_QUEUE_DEPTH),
-                      .N(DEGREE),
-                      .M(DEGREE))
-          gen_ENoC_Router (.clk(clk),
-                           .reset_n(reset_n),
-                           .i_data(l_datain[(y*X_NODES)+x]),          // From the upstream routers and nodes
-                           .i_data_val(l_datain_val[(y*X_NODES)+x]),  // From the upstream routers and nodes
-                           .o_en(l_o_en[(y*X_NODES)+x]),              // To the upstream routers
-                           .o_data(l_dataout[(y*X_NODES)+x]),         // To the downstream routers
-                           .o_data_val(l_dataout_val[(y*X_NODES)+x]), // To the downstream routers
-                           .i_en(l_i_en[(y*X_NODES)+x]));             // From the downstream routers
+    for (z=0; z<Z_NODES; z++) begin : GENERATE_Z_ROUTERS
+      for (y=0; y<Y_NODES; y++) begin : GENERATE_Y_ROUTERS
+        for(x=0; x<X_NODES; x++) begin : GENERATE_X_ROUTERS
+          ENoC_Router #(.X_NODES(X_NODES),
+                        .Y_NODES(Y_NODES),
+                        .Z_NODES(Z_NODES),
+                        .X_LOC(x),.Y_LOC(y), .Z_LOC(z),
+                        .INPUT_QUEUE_DEPTH(INPUT_QUEUE_DEPTH),
+                        .N(DEGREE),
+                        .M(DEGREE))
+            gen_ENoC_Router (.clk(clk),
+                             .reset_n(reset_n),
+                             .i_data(l_datain[(z*X_NODES*Y_NODES)+(y*X_NODES)+x]),          // From the upstream routers and nodes
+                             .i_data_val(l_datain_val[(z*X_NODES*Y_NODES)+(y*X_NODES)+x]),  // From the upstream routers and nodes
+                             .o_en(l_o_en[(z*X_NODES*Y_NODES)+(y*X_NODES)+x]),              // To the upstream routers
+                             .o_data(l_dataout[(z*X_NODES*Y_NODES)+(y*X_NODES)+x]),         // To the downstream routers
+                             .o_data_val(l_dataout_val[(z*X_NODES*Y_NODES)+(y*X_NODES)+x]), // To the downstream routers
+                             .i_en(l_i_en[(z*X_NODES*Y_NODES)+(y*X_NODES)+x]));             // From the downstream routers
+        end
       end
     end
     endgenerate

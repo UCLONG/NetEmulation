@@ -17,9 +17,11 @@ module ENoC_Router
 
 #(`ifdef TORUS
     parameter integer X_NODES,         // Total number of nodes on the X axis of the Mesh
-    parameter integer Y_NODES,         // Total number of nodes on the Y axis of the Mesh 
+    parameter integer Y_NODES,         // Total number of nodes on the Y axis of the Mesh
+    parameter integer Z_NODES,         // Total number of nodes on the Z axis of the Mesh
     parameter integer X_LOC,           // Current node location on the X axis of the Mesh
     parameter integer Y_LOC,           // Current node location on the Y axis of the Mesh
+    parameter integer Z_LOC,           // Current node location on the Y axis of the Mesh
   `else
     parameter integer NODES,           // Total number of nodes
     parameter integer LOC,             // Current node
@@ -124,7 +126,7 @@ module ENoC_Router
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS    
         ENoC_RouteCalculator #(`ifdef TORUS
-                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC))
+                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC))
                                `else
                                  .NODES(NODES), .LOC(LOC))
                                `endif
@@ -132,11 +134,12 @@ module ENoC_Router
                                       // Following two lines adapt a single address into a two part address.  Will only
                                       // work for networks where the number of nodes is a function of 2^2n where n is 
                                       // a positive integer
-                                      .i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
                                       // Correct code below
-                                      // .i_x_dest(l_data[i].x_dest),
-                                      // .i_y_dest(l_data[i].y_dest),
+                                      .i_x_dest(l_data[i].x_dest),
+                                      .i_y_dest(l_data[i].y_dest),
+                                      .i_z_dest(l_data[i].z_dest),
                                     `else
                                       .i_dest(l_data[i].dest),
                                     `endif
@@ -204,16 +207,20 @@ module ENoC_Router
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS  
         ENoC_RouteCalculator #(`ifdef TORUS
-                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC))
+                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC))
                                `else
                                  .NODES(NODES), .LOC(LOC))
                                `endif 
           gen_ENoC_RouteCalculator (`ifdef TORUS
-                                      // Delete uncommented code once packet_t is sorted
-                                      .i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
-                                      //.i_x_dest(l_data[i].x_dest),
-                                      //.i_y_dest(l_data[i].y_dest),
+                                      // Following two lines adapt a single address into a two part address.  Will only
+                                      // work for networks where the number of nodes is a function of 2^2n where n is 
+                                      // a positive integer
+                                      //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      // Correct code below
+                                      .i_x_dest(l_data[i].x_dest),
+                                      .i_y_dest(l_data[i].y_dest),
+                                      .i_z_dest(l_data[i].z_dest),
                                     `else
                                       .i_dest(l_data[i].dest),
                                     `endif
@@ -256,7 +263,6 @@ module ENoC_Router
                                      .i_data(l_data),        // From the local FIFOs
                                      .o_data(o_data));       // To the downstream routers
   
-
   // Output to downstream routers that the switch data is valid.  l_output_grant[output number] is a onehot vector, thus
   // if any of the bits are high the output referenced by [output number] has valid data.
   // ------------------------------------------------------------------------------------------------------------------                      

@@ -43,9 +43,10 @@ module ENoC_RouteCalculator
     always_comb begin
       l_output_req = '0;
       if(i_val) begin
-        if      (i_x_dest != X_LOC) l_output_req = (i_x_dest > X_LOC) ? 5'b00100 : 5'b00001;
-        else if (i_y_dest != Y_LOC) l_output_req = (i_y_dest > Y_LOC) ? 5'b01000 : 5'b00010;
-        else                        l_output_req = 5'b10000;
+        if      (i_x_dest != X_LOC) l_output_req = (i_x_dest > X_LOC) ? 5'b0010000 : 5'b0000100;
+        else if (i_y_dest != Y_LOC) l_output_req = (i_y_dest > Y_LOC) ? 5'b0100000 : 5'b0001000;
+        else if (i_z_dest != Z_LOC) l_output_req = (i_z_dest > Z_LOC) ? 5'b0000001 : 5'b0000010;        
+        else                        l_output_req = 5'b1000000;
       end
     end      
   
@@ -57,12 +58,15 @@ module ENoC_RouteCalculator
       l_output_req = '0;
       if(i_val) begin
         if (i_x_dest != X_LOC) begin
-          if (i_x_dest < X_LOC) l_output_req = ((X_LOC-i_x_dest)=<(X_NODES-(X_LOC-i_x_dest))) ? 5'b00001 : 5'b00100;
-          if (i_x_dest > X_LOC) l_output_req = ((i_x_dest-X_LOC)=<(X_NODES-(i_x_dest-X_LOC))) ? 5'b00100 : 5'b00001;
+          if (i_x_dest < X_LOC) l_output_req = ((X_LOC-i_x_dest)=<(X_NODES-(X_LOC-i_x_dest))) ? 5'b0000100 : 5'b0010000;
+          if (i_x_dest > X_LOC) l_output_req = ((i_x_dest-X_LOC)=<(X_NODES-(i_x_dest-X_LOC))) ? 5'b0010000 : 5'b0000100;
         end else if (i_y_dest != Y_LOC) begin
-          if (i_y_dest < Y_LOC) l_output_req = ((Y_LOC-i_y_dest)=<(Y_NODES-(Y_LOC-i_y_dest))) ? 5'b00010 : 5'b01000;
-          if (i_y_dest > Y_LOC) l_output_req = ((i_y_dest-Y_LOC)=<(Y_NODES-(i_y_dest-Y_LOC))) ? 5'b01000 : 5'b00010;
-        end else l_output_req = 5'b10000;
+          if (i_y_dest < Y_LOC) l_output_req = ((Y_LOC-i_y_dest)=<(Y_NODES-(Y_LOC-i_y_dest))) ? 5'b0001000 : 5'b0100000;
+          if (i_y_dest > Y_LOC) l_output_req = ((i_y_dest-Y_LOC)=<(Y_NODES-(i_y_dest-Y_LOC))) ? 5'b0100000 : 5'b0001000;
+        end else if (i_z_dest != Z_LOC) begin
+          if (i_z_dest < Z_LOC) l_output_req = ((Z_LOC-i_z_dest)=<(Z_NODES-(Z_LOC-i_z_dest))) ? 5'b0000010 : 5'b0000001;
+          if (i_z_dest > Z_LOC) l_output_req = ((i_z_dest-Z_LOC)=<(Z_NODES-(i_z_dest-Z_LOC))) ? 5'b0000001 : 5'b0000010;
+        end else l_output_req = 5'b1000000;
       end
     end
   
