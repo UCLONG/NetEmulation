@@ -14,18 +14,18 @@
 module ENoC_Network
 
 #(`ifdef TORUS
-    parameter integer X_NODES = `X_NODES,                    // Number of node columns
-    parameter integer Y_NODES = `Y_NODES,                    // Number of node rows
-    parameter integer Z_NODES = `Z_NODES,                    // Number of node layers
-    parameter integer NODES   = `X_NODES*`Y_NODES*`Z_NODES,  // Total number of nodes
-    parameter integer ROUTERS = `X_NODES*`Y_NODES*`Z_NODES,  // Total number of routers
-    parameter integer DEGREE  = 7,
+    parameter integer X_NODES = `X_NODES,                     // Number of node columns
+    parameter integer Y_NODES = `Y_NODES,                     // Number of node rows
+    parameter integer Z_NODES = `Z_NODES,                     // Number of node layers
+    parameter integer NODES   = `X_NODES*`Y_NODES*`Z_NODES,   // Total number of nodes
+    parameter integer ROUTERS = `X_NODES*`Y_NODES*`Z_NODES,   // Total number of routers
   `else
-    parameter integer NODES   = `NODES,              // Total number of nodes
-    parameter integer ROUTERS = `ROUTERS,
-    parameter integer DEGREE  = `DEGREE,
+    parameter integer NODES   = `NODES,                       // Total number of nodes
+    parameter integer ROUTERS = `ROUTERS,                     // Total number of routers
   `endif
-  parameter integer INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH) // Depth of input buffering
+  parameter   integer N       = `N,                           // Number of inputs per router
+  parameter   integer M       = `M,                           // Number of outputs per router
+  parameter   integer INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH) // Depth of input buffering
 
  (input  logic    clk, reset_n,
   
@@ -51,14 +51,14 @@ module ENoC_Network
   // 1 = North Router, 2 = East Router, 3 = South Router, 4 = West Router.  
 
   // Network connections from which routers will read
-  packet_t [0:ROUTERS-1][0:DEGREE-1] l_datain;
-  logic    [0:ROUTERS-1][0:DEGREE-1] l_datain_val;
-  logic    [0:ROUTERS-1][0:DEGREE-1] l_o_en;
+  packet_t [0:ROUTERS-1][0:N-1] l_datain;
+  logic    [0:ROUTERS-1][0:N-1] l_datain_val;
+  logic    [0:ROUTERS-1][0:N-1] l_o_en;
 
   // Network connections to which routers will write
-  packet_t [0:ROUTERS-1][0:DEGREE-1] l_dataout;
-  logic    [0:ROUTERS-1][0:DEGREE-1] l_dataout_val;
-  logic    [0:ROUTERS-1][0:DEGREE-1] l_i_en;
+  packet_t [0:ROUTERS-1][0:M-1] l_dataout;
+  logic    [0:ROUTERS-1][0:M-1] l_dataout_val;
+  logic    [0:ROUTERS-1][0:M-1] l_i_en;
   
   
   // Define the shape of the local logic network.
@@ -72,7 +72,7 @@ module ENoC_Network
   
   `ifdef MESH
     
-    // 2D Mesh without wraparound Torus links.  
+    // 2D Mesh
     // ----------------------------------------------------------------------------------------------------------------
     
     always_comb begin
@@ -209,8 +209,8 @@ module ENoC_Network
                         .Z_NODES(Z_NODES),
                         .X_LOC(x),.Y_LOC(y), .Z_LOC(z),
                         .INPUT_QUEUE_DEPTH(INPUT_QUEUE_DEPTH),
-                        .N(DEGREE),
-                        .M(DEGREE))
+                        .N(N),
+                        .M(M))
             gen_ENoC_Router (.clk(clk),
                              .reset_n(reset_n),
                              .i_data(l_datain[(z*X_NODES*Y_NODES)+(y*X_NODES)+x]),          // From the upstream routers and nodes

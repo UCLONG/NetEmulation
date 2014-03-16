@@ -35,10 +35,10 @@
 // --------------------------------------------------------------------------------------------------------------------
 // Traffic
 // --------------------------------------------------------------------------------------------------------------------
-`define PACKET_RATE 30      // Integer number between 1 and 100, representing percent of offered traffic
-`define PACKETS_PER_PORT 100
+`define PACKET_RATE 100      // Integer number between 1 and 100, representing percent of offered traffic
+`define PACKETS_PER_PORT 10
 `define PACKET_BURST_SIZE 1
-`define WARM_UP_PACKETS_PER_PORT 30
+`define WARM_UP_PACKETS_PER_PORT 0
 `define DOWNSTREAM_EN_RATE 100
 
 // --------------------------------------------------------------------------------------------------------------------

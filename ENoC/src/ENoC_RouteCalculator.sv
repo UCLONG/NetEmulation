@@ -29,7 +29,7 @@ module ENoC_RouteCalculator
  (`ifdef TORUS
     input  logic [log2(X_NODES)-1:0] i_x_dest,      // Packet destination on the x axis
     input  logic [log2(Y_NODES)-1:0] i_y_dest,      // Packet destination on the Y axis
-    input  logic [log2(X_NODES)-1:0] i_z_dest,      // Packet destination on the Z axis
+    input  logic [log2(Z_NODES)-1:0] i_z_dest,      // Packet destination on the Z axis
   `else
     input  logic [log2(NODES)-1:0]   i_dest,        // Packet destination
   `endif

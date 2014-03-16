@@ -63,11 +63,11 @@ module LIB_VOQ
   //  operation compares the values with another onehot value.
   // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
-    o_data = 'z;
+    o_data = '0;
     o_en   =  0;
     for(int i=0; i<M; i++) begin
-      if(i_en == (1<<(M-1)-i))       o_data = l_o_data[i];
-      if(i_data_val == (1<<(M-1)-i)) o_en   = l_o_en[i];
+      if(i_en == (1<<(M-1)-i)) o_data = l_o_data[i];
+      o_en = &l_o_en;
     end
   end
   

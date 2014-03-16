@@ -137,14 +137,14 @@ module ENoC_Router
                                       // Following two lines adapt a single address into a two part address.  Will only
                                       // work for networks where the number of nodes is a function of 2^2n where n is 
                                       // a positive integer
-                                      //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      //.i_x_dest(l_i_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      //.i_y_dest(l_i_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
                                       // Correct code below
-                                      .i_x_dest(l_data[i].x_dest),
-                                      .i_y_dest(l_data[i].y_dest),
-                                      .i_z_dest(l_data[i].z_dest),
+                                      .i_x_dest(l_i_data[i].x_dest),
+                                      .i_y_dest(l_i_data[i].y_dest),
+                                      .i_z_dest(l_i_data[i].z_dest),
                                     `else
-                                      .i_dest(l_data[i].dest),
+                                      .i_dest(l_i_data[i].dest),
                                     `endif
                                     .i_val(l_i_data_val[i]),      // From upstream router
                                     .o_output_req(l_vc_req[i]));  // To VOQ module
