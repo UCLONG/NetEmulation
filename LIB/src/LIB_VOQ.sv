@@ -64,11 +64,11 @@ module LIB_VOQ
   // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
     o_data = '0;
-    o_en   =  0;
     for(int i=0; i<M; i++) begin
       if(i_en == (1<<(M-1)-i)) o_data = l_o_data[i];
-      o_en = &l_o_en;
     end
   end
+  
+  assign o_en = &l_o_en;
   
 endmodule

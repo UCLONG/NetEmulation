@@ -7,7 +7,6 @@
 // Notes       : Netlist was used as the wrap around logic was causing problems during simulation.  Based on Dally and
 //               Towles Principles and Practices of Interconnection Networks p354
 // --------------------------------------------------------------------------------------------------------------------
-
 module LIB_PPE_RoundRobin
 
 #(parameter N) // Number of requesters

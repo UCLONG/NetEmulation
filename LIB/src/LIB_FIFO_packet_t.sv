@@ -183,7 +183,8 @@ module LIB_FIFO_packet_t
   // FIFO can still accept data when full, provided data will be read in the same cycle.
   // ------------------------------------------------------------------------------------------------------------------
   assign o_data_val = ~o_empty;
-  assign o_en = (~o_full || i_en);
+  assign o_en = (~o_full);
+  // assign o_en = (~o_full || i_en);
 
 
   endmodule

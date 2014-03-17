@@ -42,7 +42,7 @@ module ENoC_Network_tb
   parameter   integer N       = `N,                           // Number of inputs per router
   parameter   integer M       = `M,  
   parameter   integer INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH,  
-  parameter   integer NODE_QUEUE_SIZE = `INPUT_QUEUE_DEPTH*4);
+  parameter   integer NODE_QUEUE_SIZE = `INPUT_QUEUE_DEPTH*2);
 
   logic clk, reset_n;
   
@@ -62,19 +62,10 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------
   packet_t [0:NODES-1] s_i_data;     // Input data from upstream [core, north, east, south, west]
   logic    [0:NODES-1] s_i_data_val; // Validates data from upstream [core, north, east, south, west]
-  logic    [0:NODES-1] f_saturate;
+  logic    [0:NODES-1] f_full;       // Indicates that the node queue is saturated
   
   // Random Flags
-  // ------------------------------------------------------------------------------------------------------------------  
-  integer f_random_init;
-  
-  // Updating any value with $urandom(SEED) will change the sequence of all randomly generated numbers that use the
-  // $urandom or $urandom_range call.  Here, a dummy variable is initialised using the parameter SEED.  For a given 
-  // seed, the patterns will be individual but repeatable.
-  initial begin
-    f_random_init = $urandom(SEED);
-  end
-  
+  // ------------------------------------------------------------------------------------------------------------------   
   logic [0:NODES-1] f_data_val;
   `ifdef TORUS  
     logic [0:NODES-1][log2(X_NODES)-1:0] f_x_dest;
@@ -89,10 +80,15 @@ module ENoC_Network_tb
   longint f_time;                       // Pseudo time value/clock counter
   integer f_drain_count;                // Counts cycles computer has been draining for
   
-  integer f_port_i_data_count [0:NODES-1]; // Count number of transmitted packets on each port
-  integer f_total_i_data_count;             // Count total number of transmitted packets
-  integer f_port_o_data_count [0:NODES-1]; // Count number of received packets on each port
-  integer f_total_o_data_count;             // Count total number of received packets
+  integer f_port_s_i_data_count [0:NODES-1]; // Count number of packets simulated and added to the node queues
+  integer f_total_s_i_data_count;            // Count total number of simulated packets
+  integer f_port_i_data_count [0:NODES-1];   // Count number of packets that left the node, transmitted on each port
+  integer f_total_i_data_count;              // Count total number of transmitted packets
+  integer f_port_o_data_count [0:NODES-1];   // Count number of received packets on each port
+  integer f_total_o_data_count;              // Count total number of received packets
+  
+  integer f_port_packet_dropped [0:NODES-1]; // Count packets dropped on each port
+  integer f_total_packet_dropped;            // Count total packets dropped
 
   real    f_total_latency;         // Counts the total amount of time all measured packets have spent in the router
   real    f_average_latency;       // Calculates the average latency of measured packets
@@ -104,18 +100,16 @@ module ENoC_Network_tb
   integer f_batch_number;                                    // Used to reference batches
   
   real    f_throughput_port_o_packet_count [0:NODES-1]; // counts number of packets received over a given number of cycles
-  real    f_throughput_port_i_packet_count [0:NODES-1]; // counts number of packets transmitted over a given number of cycles 
-  real    f_throughput_total_o_packet_count; // counts number of packets received over a given number of cycles
-  real    f_throughput_total_i_packet_count; // counts number of packets transmitted over a given number of cycles   
+  real    f_throughput_total_o_packet_count; // counts number of packets received over a given number of cycles  
   real    f_throughput_cycle_count;    // counts the number of cycles f_throughput_packet_count has been counting
   real    f_throughput;                // calculates throughput
-  real    f_offered;                   // calculates the actual offered traffic rate whilst throughput is being measured
   
   integer f_routing_fail_count; // Used to count the total number of routing failures
+  integer f_test_saturated;     // Indicate the network saturated for latency measurements
   logic   f_test_complete;      // Logic high to indicate the test process is finished
   logic   f_test_abort;         // Logic high to indicate the test process was aborted
   logic   f_test_fail;          // Logic high to indicate the test process failed
-  logic   f_txrx;               // Logic high to indicate all transmitted packets were received
+  logic   f_test_txrx;          // Logic high to indicate all transmitted packets were received
   
   integer resultstxt;     // Used for control of output results file
   integer resultstxt_pos; // Used to find current position in output file
@@ -165,7 +159,7 @@ module ENoC_Network_tb
   genvar i;
   generate
     for (i=0; i<NODES; i++) begin : GENERATE_INPUT_QUEUES
-      LIB_FIFO_packet_t #(.DEPTH(WARM_UP_PACKETS+DRAIN_PACKETS+MEASURE_PACKETS))
+      LIB_FIFO_packet_t #(.DEPTH(NODE_QUEUE_SIZE))
         gen_LIB_FIFO_packet_t (.clk,
                                .ce(1'b1),
                                .reset_n,
@@ -174,7 +168,7 @@ module ENoC_Network_tb
                                .i_en(o_en[i]),               // From the Router
                                .o_data(i_data[i]),           // To the Router
                                .o_data_val(i_data_val[i]),   // To the Router
-                               .o_en(f_saturate[i]),         // Used to indicate router saturation
+                               .o_en(f_full[i]),             // Used to indicate router saturation
                                .o_full(),                    // Not connected, o_en used for flow control
                                .o_empty(),                   // Not connected, not required for simple flow control
                                .o_near_empty());             // Not connected, not required for simple flow control
@@ -255,52 +249,75 @@ module ENoC_Network_tb
   end
 
   // packet_t carries a valid in the packet, the mesh flow control uses its own valid/enable protocol and flag gen.
-  // for simplicity they are just connected here.
-  // ------------------------------------------------------------------------------------------------------------------   
+  // for simplicity they are just connected here. 
   always_comb begin
     for(int i=0; i<NODES; i++) begin
       s_i_data_val[i] = s_i_data[i].valid;
     end
   end
   
-  // TEST FUNCTION:  Packet Counters and throughput measurement
+  // TEST FUNCTION:  Throughput measurement.
   // ------------------------------------------------------------------------------------------------------------------ 
+  // Uses the count of the simulated input data so that even if the network is saturated and packets are being dropped
+  // throughput measurement will still take place
+  // ------------------------------------------------------------------------------------------------------------------  
   always_ff@(negedge clk) begin
     if(~reset_n) begin
       for(int i=0; i<NODES; i++) begin
-        f_port_i_data_count[i] <= 0;
-        f_port_o_data_count[i] <= 0;
-        f_throughput_port_o_packet_count[i] <= 0;
-        f_throughput_port_i_packet_count[i] <= 0; 
+        f_throughput_port_o_packet_count[i] <= 0; 
       end     
       f_throughput_cycle_count  <= 0;      
     end else begin
       for(int i=0; i<NODES; i++) begin
-        f_port_i_data_count[i]  <= s_i_data[i].valid ? f_port_i_data_count[i] + 1 : f_port_i_data_count[i];
-        f_port_o_data_count[i]  <= o_data[i].valid   ? f_port_o_data_count[i] + 1 : f_port_o_data_count[i];
-        f_throughput_port_o_packet_count[i] <= ((o_data[i].valid) && (f_total_i_data_count > WARM_UP_PACKETS) && (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS))) ? f_throughput_port_o_packet_count[i] + 1 : f_throughput_port_o_packet_count[i]; 
-        f_throughput_port_i_packet_count[i] <= ((i_data[i].valid) && (f_total_i_data_count > WARM_UP_PACKETS) && (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS))) ? f_throughput_port_i_packet_count[i] + 1 : f_throughput_port_i_packet_count[i];
-        f_throughput_cycle_count    <= ((f_total_i_data_count > WARM_UP_PACKETS) && (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS))) ? f_throughput_cycle_count + 1 : f_throughput_cycle_count; 
-      end
+        f_throughput_port_o_packet_count[i] <= ((o_data[i].valid) && (f_total_s_i_data_count > WARM_UP_PACKETS) 
+                                               && (f_total_s_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS))) 
+                                               ? f_throughput_port_o_packet_count[i] + 1 
+                                               : f_throughput_port_o_packet_count[i]; 
+        f_throughput_cycle_count    <= ((f_total_s_i_data_count > WARM_UP_PACKETS) 
+                                    && (f_total_s_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS))) 
+                                    ? f_throughput_cycle_count + 1 
+                                    : f_throughput_cycle_count;    
+     end
     end
   end
   
   always_comb begin
-    f_total_i_data_count = 0;
-    f_total_o_data_count = 0;
-    f_throughput_total_o_packet_count <= 0;
-    f_throughput_total_i_packet_count <= 0;
+    f_throughput_total_o_packet_count = 0;
     f_throughput = 0;
-    f_offered = 0;
     for (int i=0; i<NODES; i++) begin
-      f_total_i_data_count = f_port_i_data_count[i] + f_total_i_data_count;
-      f_total_o_data_count = f_port_o_data_count[i] + f_total_o_data_count;
-      f_throughput_total_o_packet_count = f_throughput_port_o_packet_count[i] + f_throughput_total_o_packet_count;
-      f_throughput_total_i_packet_count = f_throughput_port_i_packet_count[i] + f_throughput_total_o_packet_count;      
+      f_throughput_total_o_packet_count = f_throughput_port_o_packet_count[i] + f_throughput_total_o_packet_count;  
     end
     if (f_throughput_total_o_packet_count != 0) begin
       f_throughput = f_throughput_total_o_packet_count/(f_throughput_cycle_count*NODES);
-      f_offered = f_throughput_total_i_packet_count/(f_throughput_cycle_count*NODES);
+    end
+  end
+  
+  // TEST FUNCTION:  TXRX Packet Counters
+  // ------------------------------------------------------------------------------------------------------------------ 
+  always_ff@(negedge clk) begin
+    if(~reset_n) begin
+      for(int i=0; i<NODES; i++) begin
+        f_port_s_i_data_count[i] <= 0;
+        f_port_i_data_count[i]   <= 0;
+        f_port_o_data_count[i]   <= 0;
+      end          
+    end else begin
+      for(int i=0; i<NODES; i++) begin
+        f_port_s_i_data_count[i] <= s_i_data[i].valid        ? f_port_s_i_data_count[i] + 1 : f_port_s_i_data_count[i];
+        f_port_i_data_count[i]   <= i_data_val[i] && o_en[i] ? f_port_i_data_count[i]   + 1 : f_port_i_data_count[i];
+        f_port_o_data_count[i]   <= o_data_val[i]            ? f_port_o_data_count[i]   + 1 : f_port_o_data_count[i];
+     end
+    end
+  end
+  
+  always_comb begin
+    f_total_s_i_data_count = 0;   
+    f_total_i_data_count   = 0;
+    f_total_o_data_count   = 0;
+    for (int i=0; i<NODES; i++) begin
+      f_total_s_i_data_count = f_port_s_i_data_count[i] + f_total_s_i_data_count;
+      f_total_i_data_count   = f_port_i_data_count[i]   + f_total_i_data_count;
+      f_total_o_data_count   = f_port_o_data_count[i]   + f_total_o_data_count;    
     end
   end
 
@@ -317,8 +334,10 @@ module ENoC_Network_tb
           f_measured_packet_count = f_measured_packet_count + 1;
         end
       end
-      if (f_total_latency != 0) begin
+      if ((f_total_latency != 0) && (f_test_saturated != 1))begin
         f_average_latency = f_total_latency/f_measured_packet_count;
+      end else begin
+        f_average_latency = 10000;
       end
     end
   end
@@ -344,8 +363,10 @@ module ENoC_Network_tb
         end
       end
       for(int i=0; i<BATCH_NUMBER; i++) begin
-        if (f_batch_total_latency[i] != 0) begin
+        if ((f_batch_total_latency[i] != 0) && (f_test_saturated != 1)) begin
           f_batch_average_latency[i] = f_batch_total_latency[i]/f_batch_measured_packet_count[i];
+        end else begin
+          f_batch_average_latency[i] = 10000;          
         end
       end
     end
@@ -354,16 +375,16 @@ module ENoC_Network_tb
   // TEST FUNCTION: Saturation
   // ------------------------------------------------------------------------------------------------------------------
   initial begin
+    f_test_saturated = 0;
     forever @(negedge clk) begin
       `ifdef TORUS
         for (int z=0; z<Z_NODES; z++) begin
           for (int y=0; y<Y_NODES; y++) begin
             for (int x=0; x<X_NODES; x++) begin
-              if (f_saturate[(z*X_NODES*Y_NODES)+(y*X_NODES)+x] == 0) begin
-                $display("ABORT:  Input port %g (xyz)=(%g,%g,%g) saturated at time %g", (z*X_NODES*Y_NODES)+(y*X_NODES)+x, x, y, z, f_time);
+              if ((f_full[(z*X_NODES*Y_NODES)+(y*X_NODES)+x] == 0) && (f_test_saturated !=1)) begin
+                $display("WARNING:  Input port %g (xyz)=(%g,%g,%g) saturated at time %g", (z*X_NODES*Y_NODES)+(y*X_NODES)+x, x, y, z, f_time);
                 $display("");
-                f_test_complete = 1;
-                f_test_abort = 1;
+                f_test_saturated = 1;
                 f_test_fail = 1;
               end
             end
@@ -371,11 +392,10 @@ module ENoC_Network_tb
         end
       `else
         for (int i=0; i<NODES; i++) begin
-          if (f_saturate[i] == 0) begin
-            $display("ABORT:  Input port %g saturated at time %g", (i, f_time);
+          if ((f_full[i] == 0) && (f_test_saturated !=1)) begin
+            $display("WARNING:  Input port %g saturated at time %g", (i, f_time);
             $display("");
-            f_test_complete = 1;
-            f_test_abort = 1;
+            f_test_saturated = 1;
             f_test_fail = 1;
           end
         end      
@@ -422,35 +442,42 @@ module ENoC_Network_tb
   // which latency will be measured
   // ------------------------------------------------------------------------------------------------------------------ 
   initial begin
+    f_test_txrx = 0;
     f_drain_count = 0;
     forever @(negedge clk) begin
       if (f_total_o_data_count >= ((WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) && (f_total_o_data_count != f_total_i_data_count)) begin
         if (f_drain_count < 100) begin
           f_drain_count = f_drain_count + 1;
         end else begin
-          f_txrx = 0;
+          f_test_txrx = 0;
           f_test_complete = 1;
           f_test_fail = 1;
           f_test_abort = 1;
           $display("ABORT:  Received %g more packets than intended to send!", f_total_o_data_count-(WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS));
+          $display("ABORT:  This might be a simulator, rather than a network, fault!", f_total_o_data_count-(WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS));
+          $display("ABORT:  Simulated %g packets.  Transmitted %g packets.  Received %g packets", f_total_s_i_data_count, f_total_i_data_count, f_total_o_data_count);          
           $display(""); 
         end
       end else if ((f_total_o_data_count >= (WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) && (f_total_o_data_count == f_total_i_data_count)) begin
         if (f_drain_count < 100) begin
           f_drain_count = f_drain_count + 1;
         end else begin
-          f_txrx = 1;
+          f_test_txrx = 1;
           f_test_complete = 1;
         end
       end else if (o_data_val == 0) begin
         if (f_drain_count <100) begin
           f_drain_count = f_drain_count + 1;
         end else begin
-          f_txrx = 0;
+          f_test_txrx = 0;
           f_test_complete = 1;
           f_test_fail = 1;
           f_test_abort = 1;
           $display("ABORT:  No received packets for 100 cycles");
+          if(f_test_saturated) begin
+            $display("ABORT:  The network saturated so some packets will have been dropped");
+          end
+          $display("ABORT:  Simulated %g packets.  Transmitted %g packets.  Received %g packets", f_total_s_i_data_count, f_total_i_data_count, f_total_o_data_count);          
           $display("");     
         end
       end else begin
@@ -476,6 +503,9 @@ module ENoC_Network_tb
     $display("--------");
     $display ("");
     forever@(posedge clk) begin
+      if(f_time%20 == 0) begin
+        $display("PROGRESS:  Transmitted %g packets, Received %g packets", f_total_i_data_count, f_total_o_data_count);
+      end
       if (f_test_complete) begin
         if (f_test_abort) begin
           $display("Test aborted after %g cycles", f_time);
@@ -492,7 +522,7 @@ module ENoC_Network_tb
           $display("");
           $display("All Tests Passed!");
         end
-        if (f_txrx == 1) begin
+        if (f_test_txrx == 1) begin
           $display("TXRX PASS: Transmitted %g packets, received %g packets", f_total_i_data_count, f_total_o_data_count);
         end else begin
           $display("TXRX FAIL: Transmitted %g packets, received %g packets", f_total_i_data_count, f_total_o_data_count);       
@@ -502,7 +532,7 @@ module ENoC_Network_tb
         end else begin
           $display("ROUTING PASS: no output packets were misrouted");
         end
-        $display("OFFERED TRAFFIC:  %g%%", f_offered);
+        $display("OFFERED TRAFFIC:  %g%%", PACKET_RATE);
         $display("THROUGHPUT: %g%%", f_throughput);
         $display("AVERAGE LATENCY: %g cycles", f_average_latency);
         $display("");
@@ -549,7 +579,7 @@ module ENoC_Network_tb
         `else
           $fwrite(resultstxt, "OTHER, %g, N/A, N/A, N/A, %g, N/A, N/A, N/A, ", NODES, INPUT_QUEUE_DEPTH);
         `endif
-        $fwrite(resultstxt, "%g, %g, %g, %g, %g, %g, %g, , %g, %g, ", PACKET_RATE, WARM_UP_PACKETS, MEASURE_PACKETS, DRAIN_PACKETS, f_offered, f_throughput, f_average_latency, BATCH_NUMBER, BATCH_SIZE);
+        $fwrite(resultstxt, "%g, %g, %g, %g, %g, %g, %g, , %g, %g, ", PACKET_RATE, WARM_UP_PACKETS, MEASURE_PACKETS, DRAIN_PACKETS, PACKET_RATE, f_throughput, f_average_latency, BATCH_NUMBER, BATCH_SIZE);
         for (int i=0; i<BATCH_NUMBER; i++) begin
           $fwrite(resultstxt, "%g, ", f_batch_average_latency[i]);
         end

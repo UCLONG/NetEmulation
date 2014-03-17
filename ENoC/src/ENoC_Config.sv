@@ -5,6 +5,8 @@
 // Description : Configuration file for Electronic Network on Chip.  See individual headers for information.
 // --------------------------------------------------------------------------------------------------------------------
 
+`delay_mode_unit
+
 // --------------------------------------------------------------------------------------------------------------------
 // Network Design Constants.  Sets parameter values which can be overridden when modules are instantiated.
 // --------------------------------------------------------------------------------------------------------------------
@@ -41,9 +43,9 @@
 // Router Architecture. Uncomment to add functionality.
 // --------------------------------------------------------------------------------------------------------------------
 
-// `define LOAD_BALANCE // adds a rotating crossbar between the input ports of the router, and the input channels
- `define VOQ          // adds virtual output queues
- `define iSLIP        // Standard VOQ allocation is Round Robin, uncomment for iSLIP.
+ `define LOAD_BALANCE // adds a rotating crossbar between the input ports of the router, and the input channels
+// `define VOQ          // adds virtual output queues
+// `define iSLIP        // Standard VOQ allocation is Round Robin, uncomment for iSLIP.
 
 // --------------------------------------------------------------------------------------------------------------------
 // Type Definitions.  Two types of packet depending on how the the packet is addressed
