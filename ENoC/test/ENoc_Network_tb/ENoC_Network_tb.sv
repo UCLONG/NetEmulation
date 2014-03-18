@@ -170,6 +170,7 @@ module ENoC_Network_tb
                                .o_data_val(i_data_val[i]),   // To the Router
                                .o_en(f_full[i]),             // Used to indicate router saturation
                                .o_full(),                    // Not connected, o_en used for flow control
+                               .o_near_full(),
                                .o_empty(),                   // Not connected, not required for simple flow control
                                .o_near_empty());             // Not connected, not required for simple flow control
     end

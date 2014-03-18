@@ -5,8 +5,6 @@
 // Description : Configuration file for Electronic Network on Chip.  See individual headers for information.
 // --------------------------------------------------------------------------------------------------------------------
 
-`delay_mode_unit
-
 // --------------------------------------------------------------------------------------------------------------------
 // Network Design Constants.  Sets parameter values which can be overridden when modules are instantiated.
 // --------------------------------------------------------------------------------------------------------------------
@@ -20,8 +18,8 @@
 // --------------------------------------------------------------------------------------------------------------------
 // Network Topology.  Only uncomment a single type.
 // --------------------------------------------------------------------------------------------------------------------
-// `define MESH
-`define CUBE
+ `define MESH
+// `define CUBE
 
 // Other network types should be defined here eg clos and butterfly
 

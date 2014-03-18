@@ -57,6 +57,8 @@ module ENoC_Router
          packet_t        [0:N-1] l_data;         // Connects FIFO data outputs to switch
          logic    [0:N-1][0:M-1] l_output_req;   // Request sent to SwitchControl
          logic    [0:M-1][0:N-1] l_output_grant; // Grant from SwitchControl, used to control switch and FIFOs
+         logic           [0:N-1] l_o_full;
+         logic           [0:N-1] l_o_near_full;
          
          // Clock Enable.  For those modules that require it.
          logic                   ce;
@@ -159,7 +161,9 @@ module ENoC_Router
                        .reset_n,
                        .i_data(l_i_data[i]),         // Single input data from upstream router
                        .i_data_val(l_vc_req[i]),     // Valid from routecalc corresponds to required VC
-                       .o_en(l_o_en[i]),             // Single enable signal to the upstream router
+                       .o_en(),
+                       .o_full(l_o_full[i]),
+                       .o_near_full(l_o_near_full[i]),
                        .o_data(l_data[i]),           // Single output data to switch
                        .o_data_val(l_output_req[i]), // Packed request word to SwitchControl
                        .i_en(l_en[i]));              // Packed grant word from SwitchControl
@@ -197,8 +201,9 @@ module ENoC_Router
                                  .i_en(l_en[i]),               // From the SwitchControl
                                  .o_data(l_data[i]),           // To the Switch
                                  .o_data_val(l_data_val[i]),   // To the route calculator
-                                 .o_en(l_o_en[i]),             // To the upstream routers
-                                 .o_full(),                    // Not connected, o_en used for flow control
+                                 .o_en(),             
+                                 .o_full(l_o_full[i]),
+                                 .o_near_full(l_o_near_full[i]),                                 
                                  .o_empty(),                   // Not connected, not required for simple flow control
                                  .o_near_empty());             // Not connected, not required for simple flow control
       end
@@ -246,6 +251,16 @@ module ENoC_Router
     end   
     
   `endif
+ 
+  always_ff@(posedge clk) begin
+    if(~reset_n) begin
+      l_o_en = '0;
+    end else begin
+      for(int i=0; i<N; i++) begin
+        l_o_en[i] = ((~l_o_full[i] && ~l_o_near_full[i]) || i_en[i]);
+      end
+    end
+  end
  
   // Switch Control receives N, M-bit words, each word corresponds to an input, each bit corresponds to the requested
   // output.  This is combined with the enable signal from the downstream router, then arbitrated.  The result is

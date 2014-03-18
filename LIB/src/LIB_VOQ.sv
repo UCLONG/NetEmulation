@@ -25,6 +25,8 @@ module LIB_VOQ
   input  packet_t         i_data,     // Input data from upstream router
   input  logic    [0:M-1] i_data_val, // Validates data and indicates required output (thus which VC is required)
   output logic            o_en,       // Enables data from upstream router, depends on which VC is requested
+  output logic            o_full,
+  output logic            o_near_full,
   
   // Downstream Bus.
   // ------------------------------------------------------------------------------------------------------------------
@@ -36,7 +38,9 @@ module LIB_VOQ
   // ------------------------------------------------------------------------------------------------------------------
          packet_t [0:M-1] l_o_data;
          logic    [0:M-1] l_o_en;
-  
+         logic    [0:M-1] l_o_full;
+         logic    [0:M-1] l_o_near_full;
+         
   // Virtual Channnels
   // ------------------------------------------------------------------------------------------------------------------
   genvar i;
@@ -52,7 +56,8 @@ module LIB_VOQ
                                .o_data(l_o_data[i]),       // Needs multiplexing to a single output dependent upon i_en
                                .o_data_val(o_data_val[i]), // To the Arbiter
                                .o_en(l_o_en[i]),           // Output to downstream router dependent upon request
-                               .o_full(),                  // Not connected, o_en used for flow control.
+                               .o_full(l_o_full[i]),                  // Not connected, o_en used for flow control.
+                               .o_near_full(l_o_near_full[i]),
                                .o_empty(),                 // Not connected, not required for simple flow control
                                .o_near_empty());           // Not connected, not required for simple flow control
     end
@@ -69,6 +74,8 @@ module LIB_VOQ
     end
   end
   
-  assign o_en = &l_o_en;
+  assign o_en        = &l_o_en;
+  assign o_full      = &l_o_full;
+  assign o_near_full = &l_o_near_full;
   
 endmodule

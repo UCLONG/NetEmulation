@@ -30,7 +30,7 @@ module LIB_FIFO_packet_t
   output logic    o_data_val,        // Validates the data on o_data, held high until input enable received
   output logic    o_en,              // Outputs an enable, if high, i_data is written to memory
   
-  output logic    o_full, o_empty, o_near_empty);  // Control Flags
+  output logic    o_full, o_near_full, o_empty, o_near_empty);  // Control Flags
   
   typedef struct{logic rd_ptr, wr_ptr;} ptr;
   
@@ -55,6 +55,7 @@ module LIB_FIFO_packet_t
       o_data                  <= 0;
 
       o_full                  <= 0;
+      o_near_full             <= 0;
       o_empty                 <= 1;
       o_near_empty            <= 0;         
 
@@ -117,7 +118,6 @@ module LIB_FIFO_packet_t
         end
 
         // Full Flag.  
-
         // ------------------------------------------------------------------------------------------------------------
         if (~o_full) begin
           if(i_data_val && ~i_en) begin
@@ -131,6 +131,23 @@ module LIB_FIFO_packet_t
           o_full <= (~i_data_val && i_en) ? 1'b0 : 1'b1;       
         end
 
+        // Near Full Flag.  
+        // ------------------------------------------------------------------------------------------------------------
+        if (~o_near_full) begin
+          if(i_data_val && ~i_en) begin
+            for(int i=0; i<DEPTH; i++) begin
+              if(l_mem_ptr[i].wr_ptr) begin
+                o_near_full <= (i<DEPTH-2) ? l_mem_ptr[i+2].rd_ptr
+                                           : (i==DEPTH-2) ? l_mem_ptr[0].rd_ptr 
+                                                          : l_mem_ptr[1].rd_ptr;
+              end
+            end
+          end else begin
+            o_near_full = 0;
+          end          
+        end else if (o_near_full) begin
+          o_near_full <= ((i_data_val && i_en) || (~i_data_val && ~i_en)) ? 1'b0 : 1'b1; // XNOR
+        end
 
       
         // Empty Flag and Output Valid.
@@ -183,8 +200,7 @@ module LIB_FIFO_packet_t
   // FIFO can still accept data when full, provided data will be read in the same cycle.
   // ------------------------------------------------------------------------------------------------------------------
   assign o_data_val = ~o_empty;
-  assign o_en = (~o_full);
-  // assign o_en = (~o_full || i_en);
+  assign o_en = (~o_full || i_en);
 
 
   endmodule
