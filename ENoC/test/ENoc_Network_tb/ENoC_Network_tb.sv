@@ -13,15 +13,19 @@
 `include "ENoC_Functions.sv"
 `include "ENoC_Config.sv"
 
-// --------------------------------------------------------------------------------------------------------------------
-// Test Bench
-// --------------------------------------------------------------------------------------------------------------------
-
 module ENoC_Network_tb 
+
+// --------------------------------------------------------------------------------------------------------------------
+// PARAMETERS
+// --------------------------------------------------------------------------------------------------------------------
+// Many parameters are taken directly from the configuration file, however entering them this way enables control of
+// the parameters using TCL scripts.
+// --------------------------------------------------------------------------------------------------------------------
 
 #(parameter   integer SEED               = 0,
   parameter           CLK_PERIOD         = 5ns,
-  parameter   integer PACKET_RATE        = 50,     // Offered traffic as percent of capacity
+  parameter   integer PACKET_RATE        = 30,     // Offered traffic as percent of capacity
+  parameter   integer PACKET_BURST_SIZE  = 1,
   parameter   integer WARM_UP_PACKETS    = 1000,  // Number of packets to warm-up the network
   parameter   integer MEASURE_PACKETS    = 5000,  // Number of packets to be measured
   parameter   integer DRAIN_PACKETS      = 500,    // Number of packets to drain the network
@@ -44,27 +48,35 @@ module ENoC_Network_tb
   parameter   integer INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH,  
   parameter   integer NODE_QUEUE_SIZE = `INPUT_QUEUE_DEPTH*2);
 
-  logic clk, reset_n;
+// --------------------------------------------------------------------------------------------------------------------
+// SIGNALS
+// --------------------------------------------------------------------------------------------------------------------  
   
-  // Node Input Bus.
+  logic clk, reset_n;
+ 
+  // SIGNALS:  Node Input Bus.
   // ------------------------------------------------------------------------------------------------------------------
   packet_t [0:NODES-1] i_data;     // Input data to network from upstream nodes
   logic    [0:NODES-1] i_data_val; // Validates input data from upstream nodes
   logic    [0:NODES-1] o_en;       // Enables input data from upstream nodes to network
   
-  // Node Output Bus
+  // SIGNALS:  Node Output Bus
   // ------------------------------------------------------------------------------------------------------------------
   logic    [0:NODES-1] i_en;       // Enables output data from network to downstream nodes
   packet_t [0:NODES-1] o_data;     // Outputs data from network to downstream nodes
   logic    [0:NODES-1] o_data_val; // Validates output data to downstream nodes
   
-  // Input Queue FIFO signals
+  // SIGNALS:  Input Queue FIFO signals
   // ------------------------------------------------------------------------------------------------------------------
   packet_t [0:NODES-1] s_i_data;     // Input data from upstream [core, north, east, south, west]
   logic    [0:NODES-1] s_i_data_val; // Validates data from upstream [core, north, east, south, west]
   logic    [0:NODES-1] f_full;       // Indicates that the node queue is saturated
   
-  // Random Flags
+// --------------------------------------------------------------------------------------------------------------------
+// FLAGS
+// --------------------------------------------------------------------------------------------------------------------   
+  
+  // FLAGS:  Random
   // ------------------------------------------------------------------------------------------------------------------   
   logic [0:NODES-1] f_data_val;
   `ifdef TORUS  
@@ -75,10 +87,12 @@ module ENoC_Network_tb
     logic [0:NODES-1][log2(NODES)-1:0] f_dest;
   `endif
   
-  // Control Flags
+  // FLAGS:  Control
   // ------------------------------------------------------------------------------------------------------------------  
   longint f_time;                       // Pseudo time value/clock counter
   integer f_drain_count;                // Counts cycles computer has been draining for
+  
+  integer f_burst_count [0:NODES-1];
   
   integer f_port_s_i_data_count [0:NODES-1]; // Count number of packets simulated and added to the node queues
   integer f_total_s_i_data_count;            // Count total number of simulated packets
@@ -89,10 +103,13 @@ module ENoC_Network_tb
   
   integer f_port_packet_dropped [0:NODES-1]; // Count packets dropped on each port
   integer f_total_packet_dropped;            // Count total packets dropped
-
+  logic   [0:NODES-1][999:0] f_tx_packet;
+  logic   [0:NODES-1][999:0] f_rx_packet;
+  
   real    f_total_latency;         // Counts the total amount of time all measured packets have spent in the router
   real    f_average_latency;       // Calculates the average latency of measured packets
   real    f_measured_packet_count; // Number of packets measured
+  integer f_longest_latency;
   
   real    f_batch_total_latency [0:BATCH_NUMBER-1];         // Counts the total amount of time all measured packets in a batch have spent in the router
   real    f_batch_average_latency [0:BATCH_NUMBER-1];       // Calculates the average latency of measured packets in a batch
@@ -113,19 +130,73 @@ module ENoC_Network_tb
   
   integer resultstxt;     // Used for control of output results file
   integer resultstxt_pos; // Used to find current position in output file
-  
-  // DUT
-  // ------------------------------------------------------------------------------------------------------------------       
 
-  ENoC_Network
-    DUT_ENoC_Network (.*);
+// --------------------------------------------------------------------------------------------------------------------  
+// DUT
+// --------------------------------------------------------------------------------------------------------------------       
+
+  `ifdef TORUS
   
-  // SIMULATION:  System Clock and Time
+     ENoC_Network
+      DUT_ENoC_Network (.*);
+    
+  `endif
+  
+  `ifdef SO
+  
+    packet_t             l_flit_in  [0:NODES-1];
+    packet_t             l_flit_out [0:NODES-1];
+    logic    [NODES-1:0] l_full;
+    
+    // SO Network uses unpacked collection of packet_t whereas the test bench uses packed.  Swap.
+    always_comb begin
+      for(int i=0; i<NODES; i++) begin
+        l_flit_in[i] = i_data[i];
+        o_data[i]    = l_flit_out[i];
+        o_en[i]      = ~l_full[i];
+      end
+    end
+    
+    // DUT SO
+    network
+      DUT_network (.clk(clk),
+                   .rst(~reset_n),
+                   .flit_in(l_flit_in),
+                   .flit_out(l_flit_out),
+                   .full(l_full));
+    
+    // SO Network contains valid in packet_t and does not provide any other valid signal.  That valid is connected
+    // to the one the test bench looks for here.  
+    always_comb begin
+      o_data_val = 0;
+      for(int i=0; i<NODES; i++) begin
+        o_data_val[i] = o_data[i].valid;
+      end
+    end
+  
+  `endif
+
+// --------------------------------------------------------------------------------------------------------------------
+// SIMULATION
+// --------------------------------------------------------------------------------------------------------------------
+// In this section, a system clock is generated and a pseudo time value called f_time.   f_time is used for debugging
+// but also to calculate latency and throughput.  A reset is initially set, and lifts quickly.
+// Network nodes are simulated in two parts, a transmit side and receive side.  The transmit side is a FIFO.  The fifo
+// the FIFO output is connected directly to the network.  If data is sent to the FIFO, it will try and enter the
+// network at the soonest possible time.  To control the rate at which traffic is offered to the network, the rate at
+// which traffic is offered to the FIFO must be controlled.  The receive side simply simulates an enable signal.  This
+// means that the node can be busy, and refuse network traffic if so required.
+// --------------------------------------------------------------------------------------------------------------------
+
+  // SIMULATION:  System Clock
   // ------------------------------------------------------------------------------------------------------------------
   initial begin
     clk = 1;
     forever #(CLK_PERIOD/2) clk = ~clk;
   end
+
+  // SIMULATION:  System Time
+  // ------------------------------------------------------------------------------------------------------------------
   
   initial begin
     f_time = 0;
@@ -175,7 +246,17 @@ module ENoC_Network_tb
                                .o_near_empty());             // Not connected, not required for simple flow control
     end
   endgenerate
-        
+
+// --------------------------------------------------------------------------------------------------------------------
+// RANDOM DATA GENERATION
+// --------------------------------------------------------------------------------------------------------------------
+// The random data generation consists of two parts, random flag generation, and the population of the data.  A valid
+// bit and random node address are generated each cycle as flags.  When populating input data, these flags can be
+// sampled as and when required.  The data generation has been split this way to enable easier editing of the composite
+// parts.  For example, creating a new random traffic pattern would require only the valid bit to be worked on, and the
+// rest can remain the same.
+// --------------------------------------------------------------------------------------------------------------------
+  
   // RANDOM FLAG:  Destination
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(posedge clk) begin
@@ -202,60 +283,107 @@ module ENoC_Network_tb
     end
   end
   
-  // RANDOM FLAG:  Valid (Bernoulli)
+  // RANDOM FLAG:  Valid (Bernoulli) and bursty (fixed burst size)
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(posedge clk) begin
     if(~reset_n) begin
       for(int i=0; i<NODES; i++) begin
         f_data_val[i] <= 0;
+        f_burst_count[i] <= 0;
       end
     end else begin
       for(int i=0; i<NODES; i++) begin
-        f_data_val[i] = ($urandom_range(100,1) <= PACKET_RATE) ? 1 : 0;
+        if ($urandom_range((100/PACKET_RATE)*PACKET_BURST_SIZE,1) == 1) begin
+          f_data_val[i]    <= 1;
+          f_burst_count[i] <= PACKET_BURST_SIZE-1 + f_burst_count[i];           
+        end else if (f_burst_count[i] > 0) begin
+          f_data_val[i]    <= 1;
+          f_burst_count[i] <= f_burst_count[i] - 1;
+        end else begin
+          f_data_val[i]    <= 0;
+          f_burst_count[i] <= 0;
+        end
       end
     end
   end  
   
-  // Populate input data
+  // RANDOM DATA GENERATION:  Populate input data
   // ------------------------------------------------------------------------------------------------------------------  
-  always_ff@(posedge clk) begin
-    if(~reset_n) begin
-      for (int z=0; z<Z_NODES; z++) begin
-        for (int y=0; y<Y_NODES; y++) begin
-          for (int x=0; x<X_NODES; x++) begin
-            s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].data      <= 1; // Data field used to number packets
-            s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].x_source  <= x; // Source field used to declare which input port packet was presented to
-            s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].y_source  <= y; // Source field used to declare which input port packet was presented to
-            s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].z_source  <= z; // Source field used to declare which input port packet was presented to        
-            s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].x_dest    <= 0; // Destination field indicates where packet is to be routed to
-            s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].y_dest    <= 0; // Destination field indicates where packet is to be routed to 
-            s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].z_dest    <= 0; // Destination field indicates where packet is to be routed to         
-            s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].valid     <= 0; // Valid field indicates if the packet is valid or not
-            s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].timestamp <= 0; // Timestamp field used to indicate when packet was generated
-            s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].measure   <= 0; // Measure field used to indicate if packet should be measured           
+  `ifdef TORUS
+  
+    always_ff@(posedge clk) begin
+      if(~reset_n) begin
+        for (int z=0; z<Z_NODES; z++) begin
+          for (int y=0; y<Y_NODES; y++) begin
+            for (int x=0; x<X_NODES; x++) begin
+              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].data      <= 1; // Data field used to number packets
+              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].x_source  <= x; // Source field used to declare which input port packet was presented to
+              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].y_source  <= y; // Source field used to declare which input port packet was presented to
+              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].z_source  <= z; // Source field used to declare which input port packet was presented to        
+              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].x_dest    <= 0; // Destination field indicates where packet is to be routed to
+              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].y_dest    <= 0; // Destination field indicates where packet is to be routed to 
+              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].z_dest    <= 0; // Destination field indicates where packet is to be routed to         
+              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].valid     <= 0; // Valid field indicates if the packet is valid or not
+              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].timestamp <= 0; // Timestamp field used to indicate when packet was generated
+              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].measure   <= 0; // Measure field used to indicate if packet should be measured           
+            end
           end
         end
-      end
-    end else begin
-      for(int i=0; i<NODES; i++) begin
-        s_i_data[i].data      <= s_i_data[i].valid ? s_i_data[i].data  + 1 : s_i_data[i].data;
-        s_i_data[i].x_dest    <= f_x_dest[i];
-        s_i_data[i].y_dest    <= f_y_dest[i];
-        s_i_data[i].z_dest    <= f_z_dest[i];
-        s_i_data[i].valid     <= (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) ? f_data_val[i] : 0;
-        s_i_data[i].timestamp <= f_time + 1; // +1 so that the cycle used writing to the input queue is ignored
-        s_i_data[i].measure   <= (f_total_i_data_count > WARM_UP_PACKETS) && (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS)) ? 1 : 0;
+      end else begin
+        for(int i=0; i<NODES; i++) begin
+          s_i_data[i].data      <= s_i_data[i].valid ? s_i_data[i].data  + 1 : s_i_data[i].data;
+          if(f_burst_count[i] == 0) begin
+            s_i_data[i].x_dest    <= f_x_dest[i];
+            s_i_data[i].y_dest    <= f_y_dest[i];
+            s_i_data[i].z_dest    <= f_z_dest[i];
+          end else begin
+            s_i_data[i].x_dest    <= s_i_data[i].x_dest;
+            s_i_data[i].y_dest    <= s_i_data[i].y_dest;
+            s_i_data[i].z_dest    <= s_i_data[i].z_dest;          
+          end
+          s_i_data[i].valid     <= (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) ? f_data_val[i] : 0;
+          s_i_data[i].timestamp <= f_time + 1; // +1 so that the cycle used writing to the input queue is ignored
+          s_i_data[i].measure   <= (f_total_i_data_count > WARM_UP_PACKETS) && (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS)) ? 1 : 0;
+        end
       end
     end
-  end
+  
+  `else
+  
+    always_ff@(posedge clk) begin
+      if(~reset_n) begin
+        for (int i=0; i<NODES; i++) begin
+          s_i_data[i].data      <= 1; // Data field used to number packets
+          s_i_data[i].source    <= i; // Source field used to declare which input port packet was presented to         
+          s_i_data[i].dest      <= 0; // Destination field indicates where packet is to be routed to         
+          s_i_data[i].valid     <= 0; // Valid field indicates if the packet is valid or not
+          s_i_data[i].timestamp <= 0; // Timestamp field used to indicate when packet was generated
+          s_i_data[i].measure   <= 0; // Measure field used to indicate if packet should be measured           
+        end
+      end else begin
+        for(int i=0; i<NODES; i++) begin
+          s_i_data[i].data      <= s_i_data[i].valid ? s_i_data[i].data  + 1 : s_i_data[i].data;
+          s_i_data[i].dest      <= f_dest[i];
+          s_i_data[i].valid     <= (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) ? f_data_val[i] : 0;
+          s_i_data[i].timestamp <= f_time + 1; // +1 so that the cycle used writing to the input queue is ignored
+          s_i_data[i].measure   <= (f_total_i_data_count > WARM_UP_PACKETS) && (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS)) ? 1 : 0;
+        end
+      end
+    end
+  
+  `endif
 
-  // packet_t carries a valid in the packet, the mesh flow control uses its own valid/enable protocol and flag gen.
-  // for simplicity they are just connected here. 
+  // packet_t carries a valid in the packet, the some flow controls, such as that used by LIB_FIFO_packet_t use separate
+  // valid/enable protocol and flag gen.  For simplicity, they are just connected here. 
   always_comb begin
     for(int i=0; i<NODES; i++) begin
       s_i_data_val[i] = s_i_data[i].valid;
     end
   end
+
+// --------------------------------------------------------------------------------------------------------------------
+// TEST FUNCTIONS
+// --------------------------------------------------------------------------------------------------------------------
   
   // TEST FUNCTION:  Throughput measurement.
   // ------------------------------------------------------------------------------------------------------------------ 
@@ -270,7 +398,8 @@ module ENoC_Network_tb
       f_throughput_cycle_count  <= 0;      
     end else begin
       for(int i=0; i<NODES; i++) begin
-        f_throughput_port_o_packet_count[i] <= ((o_data[i].valid) && (f_total_s_i_data_count > WARM_UP_PACKETS) 
+        f_throughput_port_o_packet_count[i] <= ((o_data[i].valid) 
+                                               && (f_total_s_i_data_count > WARM_UP_PACKETS) 
                                                && (f_total_s_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS))) 
                                                ? f_throughput_port_o_packet_count[i] + 1 
                                                : f_throughput_port_o_packet_count[i]; 
@@ -293,7 +422,7 @@ module ENoC_Network_tb
     end
   end
   
-  // TEST FUNCTION:  TXRX Packet Counters
+  // TEST FUNCTION:  TX and RX Packet Counters
   // ------------------------------------------------------------------------------------------------------------------ 
   always_ff@(negedge clk) begin
     if(~reset_n) begin
@@ -322,6 +451,35 @@ module ENoC_Network_tb
     end
   end
 
+  // TEST FUNCTION:  TX and RX Packet identification
+  // ------------------------------------------------------------------------------------------------------------------
+
+  always_ff@(negedge clk) begin
+    if(~reset_n) begin
+      for(int i=0; i<NODES; i++) begin
+        f_tx_packet[i] <= '0;
+        f_rx_packet[i] <= '0;
+      end
+    end else begin
+      for(int i=0; i<NODES; i++) begin
+        if(i_data_val[i] && o_en[i]) begin 
+          `ifdef TORUS
+            f_tx_packet[i][i_data[i].data] <= 1; 
+          `else
+            f_tx_packet[i][i_data[i].data] <= 1;  
+          `endif          
+        end
+        if(o_data_val[i]) begin
+          `ifdef TORUS
+            f_rx_packet[(o_data[i].z_source*X_NODES*Y_NODES)+(o_data[i].y_source*X_NODES)+o_data[i].x_source][o_data[i].data] <= 1;
+          `else
+            f_rx_packet[o_data[i].source][o_data[i].data] <= 1;         
+          `endif
+        end
+      end
+    end
+  end
+  
   // TEST FUNCTION: Latency of Measure Packets
   // ------------------------------------------------------------------------------------------------------------------
   initial begin
@@ -373,6 +531,22 @@ module ENoC_Network_tb
     end
   end
   
+  // TEST FUNCTION: Longest Packet Latency
+  // ------------------------------------------------------------------------------------------------------------------
+  always_ff@(negedge clk) begin
+    if(~reset_n) begin
+      f_longest_latency <= '0;  
+    end else begin
+      for(int i=0; i<NODES; i++) begin
+        if((f_time - o_data[i].timestamp) > f_longest_latency) begin
+          f_longest_latency <= (f_time - o_data[i].timestamp);
+        end else begin
+          f_longest_latency <= f_longest_latency;
+        end
+      end
+    end
+  end
+  
   // TEST FUNCTION: Saturation
   // ------------------------------------------------------------------------------------------------------------------
   initial begin
@@ -383,7 +557,7 @@ module ENoC_Network_tb
           for (int y=0; y<Y_NODES; y++) begin
             for (int x=0; x<X_NODES; x++) begin
               if ((f_full[(z*X_NODES*Y_NODES)+(y*X_NODES)+x] == 0) && (f_test_saturated !=1)) begin
-                $display("WARNING:  Input port %g (xyz)=(%g,%g,%g) saturated at time %g", (z*X_NODES*Y_NODES)+(y*X_NODES)+x, x, y, z, f_time);
+                $display("WARNING:  Input port %g (xyz)=(%g,%g,%g) saturated at f_time %g", (z*X_NODES*Y_NODES)+(y*X_NODES)+x, x, y, z, f_time);
                 $display("");
                 f_test_saturated = 1;
                 f_test_fail = 1;
@@ -394,7 +568,7 @@ module ENoC_Network_tb
       `else
         for (int i=0; i<NODES; i++) begin
           if ((f_full[i] == 0) && (f_test_saturated !=1)) begin
-            $display("WARNING:  Input port %g saturated at time %g", (i, f_time);
+            $display("WARNING:  Input port %g saturated at f_time %g", i, f_time);
             $display("");
             f_test_saturated = 1;
             f_test_fail = 1;
@@ -427,7 +601,7 @@ module ENoC_Network_tb
       `else
         for (int i=0; i<NODES; i++) begin
           if (o_data_val[i] == 1) begin
-            if ((o_data[i].dest != i) begin
+            if (o_data[i].dest != i) begin
               $display ("Routing error number %g at time %g.  The packet output to node %g should have been sent to node %g", f_routing_fail_count + 1, f_time, i, o_data[i].dest);
               $display("");
               f_routing_fail_count = f_routing_fail_count + 1;
@@ -487,7 +661,7 @@ module ENoC_Network_tb
     end
   end
 
-  // TEST CONTROL
+  // RESULTS CONTROL
   // ------------------------------------------------------------------------------------------------------------------   
   initial begin
     $display("");
@@ -505,7 +679,7 @@ module ENoC_Network_tb
     $display ("");
     forever@(posedge clk) begin
       if(f_time%20 == 0) begin
-        $display("PROGRESS:  Transmitted %g packets, Received %g packets", f_total_i_data_count, f_total_o_data_count);
+        $display("f_time %g:  Transmitted %g packets, Received %g packets", f_time, f_total_i_data_count, f_total_o_data_count);
       end
       if (f_test_complete) begin
         if (f_test_abort) begin
@@ -518,7 +692,7 @@ module ENoC_Network_tb
         $display("------------");
         if (f_test_fail) begin
           $display("");
-          $display("Test Failed!  See test log above for details.");
+          $display("Test Failed!  Check test log above for messages.");
         end else begin
           $display("");
           $display("All Tests Passed!");
@@ -526,7 +700,14 @@ module ENoC_Network_tb
         if (f_test_txrx == 1) begin
           $display("TXRX PASS: Transmitted %g packets, received %g packets", f_total_i_data_count, f_total_o_data_count);
         end else begin
-          $display("TXRX FAIL: Transmitted %g packets, received %g packets", f_total_i_data_count, f_total_o_data_count);       
+          $display("TXRX FAIL: Transmitted %g packets, received %g packets", f_total_i_data_count, f_total_o_data_count);
+          for(int i=0; i<NODES; i++) begin
+            for(int j=0; j<1000; j++) begin
+              if(f_rx_packet[i][j] != f_tx_packet[i][j]) begin
+                $display("It appears that packet number %g, transmitted on port %g, was never received", j, i);
+              end
+            end
+          end          
         end
         if (f_routing_fail_count > 0) begin
           $display("ROUTING FAIL: %g routing failures", f_routing_fail_count);

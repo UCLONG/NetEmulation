@@ -134,7 +134,11 @@ module ENoC_Router
                                `else
                                  .NODES(NODES), .LOC(LOC))
                                `endif
-          gen_ENoC_RouteCalculator (`ifdef TORUS
+          gen_ENoC_RouteCalculator (`ifdef XYSWAP
+                                      .clk(clk),
+                                      .reset_n(reset_n),
+                                    `endif
+                                    `ifdef TORUS
                                       // Delete commented code when packet_t is sorted in NEMU
                                       // Following two lines adapt a single address into a two part address.  Will only
                                       // work for networks where the number of nodes is a function of 2^2n where n is 
@@ -219,7 +223,11 @@ module ENoC_Router
                                `else
                                  .NODES(NODES), .LOC(LOC))
                                `endif 
-          gen_ENoC_RouteCalculator (`ifdef TORUS
+          gen_ENoC_RouteCalculator (`ifdef XYSWAP
+                                      .clk(clk),
+                                      .reset_n(reset_n),
+                                    `endif
+                                    `ifdef TORUS
                                       // Delete commented code when packet_t is sorted in NEMU
                                       // Following two lines adapt a single address into a two part address.  Will only
                                       // work for networks where the number of nodes is a function of 2^2n where n is 

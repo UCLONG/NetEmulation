@@ -8,12 +8,12 @@
 // --------------------------------------------------------------------------------------------------------------------
 // Network Design Constants.  Sets parameter values which can be overridden when modules are instantiated.
 // --------------------------------------------------------------------------------------------------------------------
-`define NODES   64          // Total number of nodes
-`define X_NODES 4           // k(x,y,z)-ary.  Number of node columns - only considered for Torus
-`define Y_NODES 4           // k(x,y,z)-ary.  Number of node rows - only considered for Torus
-`define Z_NODES 4           // k(x,y,z)-ary.  Number of node layers
+`define NODES   9          // Total number of nodes
+`define X_NODES 3           // k(x,y,z)-ary.  Number of node columns - only considered for Torus
+`define Y_NODES 3           // k(x,y,z)-ary.  Number of node rows - only considered for Torus
+`define Z_NODES 1           // k(x,y,z)-ary.  Number of node layers
 `define PAYLOAD 8           // Size of the data packet
-`define INPUT_QUEUE_DEPTH 8 // Globally set packet depth for input queues
+`define INPUT_QUEUE_DEPTH 4 // Globally set packet depth for input queues
 
 // --------------------------------------------------------------------------------------------------------------------
 // Network Topology.  Only uncomment a single type.
@@ -41,9 +41,10 @@
 // Router Architecture. Uncomment to add functionality.
 // --------------------------------------------------------------------------------------------------------------------
 
- `define LOAD_BALANCE // adds a rotating crossbar between the input ports of the router, and the input channels
-// `define VOQ          // adds virtual output queues
-// `define iSLIP        // Standard VOQ allocation is Round Robin, uncomment for iSLIP.
+// `define LOAD_BALANCE // adds a rotating crossbar between the input ports of the router, and the input channels
+ `define VOQ          // adds virtual output queues
+ `define iSLIP        // Standard VOQ allocation is Round Robin, uncomment for iSLIP.
+// `define XYSWAP       // Changes the order of routing precedence for the XYZ dimension each cycle
 
 // --------------------------------------------------------------------------------------------------------------------
 // Type Definitions.  Two types of packet depending on how the the packet is addressed
