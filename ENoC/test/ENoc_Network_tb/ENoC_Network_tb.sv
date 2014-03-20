@@ -26,7 +26,7 @@ module ENoC_Network_tb
   parameter           CLK_PERIOD         = 5ns,
   parameter   integer PACKET_RATE        = 30,     // Offered traffic as percent of capacity
   parameter   integer PACKET_BURST_SIZE  = 1,
-  parameter   integer WARM_UP_PACKETS    = 1000,  // Number of packets to warm-up the network
+  parameter   integer WARMUP_PACKETS     = 1000,  // Number of packets to warm-up the network
   parameter   integer MEASURE_PACKETS    = 5000,  // Number of packets to be measured
   parameter   integer DRAIN_PACKETS      = 500,    // Number of packets to drain the network
   parameter   integer DOWNSTREAM_EN_RATE = 100,    // Percent of time simulated nodes able to receive data
@@ -46,7 +46,7 @@ module ENoC_Network_tb
   parameter   integer N       = `N,                           // Number of inputs per router
   parameter   integer M       = `M,  
   parameter   integer INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH,  
-  parameter   integer NODE_QUEUE_SIZE = `INPUT_QUEUE_DEPTH*2);
+  parameter   integer NODE_QUEUE_SIZE = `INPUT_QUEUE_DEPTH*8);
 
 // --------------------------------------------------------------------------------------------------------------------
 // SIGNALS
@@ -70,6 +70,7 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------
   packet_t [0:NODES-1] s_i_data;     // Input data from upstream [core, north, east, south, west]
   logic    [0:NODES-1] s_i_data_val; // Validates data from upstream [core, north, east, south, west]
+  logic    [0:NODES-1] l_i_data_val; // Used to create i_data_val depending on the value of o_en
   logic    [0:NODES-1] f_full;       // Indicates that the node queue is saturated
   
 // --------------------------------------------------------------------------------------------------------------------
@@ -101,15 +102,14 @@ module ENoC_Network_tb
   integer f_port_o_data_count [0:NODES-1];   // Count number of received packets on each port
   integer f_total_o_data_count;              // Count total number of received packets
   
-  integer f_port_packet_dropped [0:NODES-1]; // Count packets dropped on each port
-  integer f_total_packet_dropped;            // Count total packets dropped
   logic   [0:NODES-1][999:0] f_tx_packet;
   logic   [0:NODES-1][999:0] f_rx_packet;
   
-  real    f_total_latency;         // Counts the total amount of time all measured packets have spent in the router
-  real    f_average_latency;       // Calculates the average latency of measured packets
-  real    f_measured_packet_count; // Number of packets measured
-  integer f_longest_latency;
+  real    f_total_latency;            // Counts the total amount of time all measured packets have spent in the router
+  real    f_average_latency;          // Calculates the average latency of measured packets
+  real    f_measured_packet_count;    // Number of packets measured
+  integer f_max_latency;              // The longest measured frequency
+  integer f_latency_frequency [0:99]; // The amount of times a single latency occurs
   
   real    f_batch_total_latency [0:BATCH_NUMBER-1];         // Counts the total amount of time all measured packets in a batch have spent in the router
   real    f_batch_average_latency [0:BATCH_NUMBER-1];       // Calculates the average latency of measured packets in a batch
@@ -238,7 +238,7 @@ module ENoC_Network_tb
                                .i_data_val(s_i_data_val[i]), // From the simulated input data
                                .i_en(o_en[i]),               // From the Router
                                .o_data(i_data[i]),           // To the Router
-                               .o_data_val(i_data_val[i]),   // To the Router
+                               .o_data_val(l_i_data_val[i]),   // To the Router
                                .o_en(f_full[i]),             // Used to indicate router saturation
                                .o_full(),                    // Not connected, o_en used for flow control
                                .o_near_full(),
@@ -246,7 +246,15 @@ module ENoC_Network_tb
                                .o_near_empty());             // Not connected, not required for simple flow control
     end
   endgenerate
-
+  
+  // Check for an output enable before raising valid
+  always_comb begin
+    i_data_val = '0;
+    for(int i=0; i<NODES; i++) begin
+      i_data_val[i] = l_i_data_val[i] && o_en[i];
+    end
+  end  
+    
 // --------------------------------------------------------------------------------------------------------------------
 // RANDOM DATA GENERATION
 // --------------------------------------------------------------------------------------------------------------------
@@ -341,9 +349,9 @@ module ENoC_Network_tb
             s_i_data[i].y_dest    <= s_i_data[i].y_dest;
             s_i_data[i].z_dest    <= s_i_data[i].z_dest;          
           end
-          s_i_data[i].valid     <= (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) ? f_data_val[i] : 0;
+          s_i_data[i].valid     <= (f_total_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) ? f_data_val[i]: 0;
           s_i_data[i].timestamp <= f_time + 1; // +1 so that the cycle used writing to the input queue is ignored
-          s_i_data[i].measure   <= (f_total_i_data_count > WARM_UP_PACKETS) && (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS)) ? 1 : 0;
+          s_i_data[i].measure   <= (f_total_i_data_count > WARMUP_PACKETS) && (f_total_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS)) ? 1 : 0;
         end
       end
     end
@@ -364,9 +372,9 @@ module ENoC_Network_tb
         for(int i=0; i<NODES; i++) begin
           s_i_data[i].data      <= s_i_data[i].valid ? s_i_data[i].data  + 1 : s_i_data[i].data;
           s_i_data[i].dest      <= f_dest[i];
-          s_i_data[i].valid     <= (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) ? f_data_val[i] : 0;
+          s_i_data[i].valid     <= (f_total_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) ? f_data_val[i] : 0;
           s_i_data[i].timestamp <= f_time + 1; // +1 so that the cycle used writing to the input queue is ignored
-          s_i_data[i].measure   <= (f_total_i_data_count > WARM_UP_PACKETS) && (f_total_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS)) ? 1 : 0;
+          s_i_data[i].measure   <= (f_total_i_data_count > WARMUP_PACKETS) && (f_total_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS)) ? 1 : 0;
         end
       end
     end
@@ -399,12 +407,12 @@ module ENoC_Network_tb
     end else begin
       for(int i=0; i<NODES; i++) begin
         f_throughput_port_o_packet_count[i] <= ((o_data[i].valid) 
-                                               && (f_total_s_i_data_count > WARM_UP_PACKETS) 
-                                               && (f_total_s_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS))) 
+                                               && (f_total_s_i_data_count > WARMUP_PACKETS) 
+                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS))) 
                                                ? f_throughput_port_o_packet_count[i] + 1 
                                                : f_throughput_port_o_packet_count[i]; 
-        f_throughput_cycle_count    <= ((f_total_s_i_data_count > WARM_UP_PACKETS) 
-                                    && (f_total_s_i_data_count < (WARM_UP_PACKETS+MEASURE_PACKETS))) 
+        f_throughput_cycle_count    <= ((f_total_s_i_data_count > WARMUP_PACKETS) 
+                                    && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS))) 
                                     ? f_throughput_cycle_count + 1 
                                     : f_throughput_cycle_count;    
      end
@@ -535,13 +543,31 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(negedge clk) begin
     if(~reset_n) begin
-      f_longest_latency <= '0;  
+      f_max_latency <= '0;  
     end else begin
       for(int i=0; i<NODES; i++) begin
-        if((f_time - o_data[i].timestamp) > f_longest_latency) begin
-          f_longest_latency <= (f_time - o_data[i].timestamp);
+        if((f_time - o_data[i].timestamp) > f_max_latency) begin
+          f_max_latency <= (f_time - o_data[i].timestamp);
         end else begin
-          f_longest_latency <= f_longest_latency;
+          f_max_latency <= f_max_latency;
+        end
+      end
+    end
+  end
+  
+  // TEST FUNCTION: Latency Frequency
+  // ------------------------------------------------------------------------------------------------------------------
+  always_ff@(negedge clk) begin
+    if(~reset_n) begin
+      for(int i=0; i<100; i++) begin
+        f_latency_frequency[i] <= 0; 
+      end        
+    end else begin
+      for(int i=0; i<NODES; i++) begin
+        if(o_data[i].valid == 1) begin
+          f_latency_frequency[(f_time - o_data[i].timestamp)] <= f_latency_frequency[(f_time - o_data[i].timestamp)] + 1;
+        end else begin
+          f_latency_frequency[(f_time - o_data[i].timestamp)] <= f_latency_frequency[(f_time - o_data[i].timestamp)];
         end
       end
     end
@@ -557,7 +583,7 @@ module ENoC_Network_tb
           for (int y=0; y<Y_NODES; y++) begin
             for (int x=0; x<X_NODES; x++) begin
               if ((f_full[(z*X_NODES*Y_NODES)+(y*X_NODES)+x] == 0) && (f_test_saturated !=1)) begin
-                $display("WARNING:  Input port %g (xyz)=(%g,%g,%g) saturated at f_time %g", (z*X_NODES*Y_NODES)+(y*X_NODES)+x, x, y, z, f_time);
+                $display("WARNING:  Input port %g, (xyz)=(%g,%g,%g), saturated at f_time %g", (z*X_NODES*Y_NODES)+(y*X_NODES)+x, x, y, z, f_time);
                 $display("");
                 f_test_saturated = 1;
                 f_test_fail = 1;
@@ -620,20 +646,20 @@ module ENoC_Network_tb
     f_test_txrx = 0;
     f_drain_count = 0;
     forever @(negedge clk) begin
-      if (f_total_o_data_count >= ((WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) && (f_total_o_data_count != f_total_i_data_count)) begin
-        if (f_drain_count < 100) begin
+      if (f_total_o_data_count >= ((WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) && (f_total_o_data_count != f_total_i_data_count)) begin
+        if (f_drain_count < 1000) begin
           f_drain_count = f_drain_count + 1;
         end else begin
           f_test_txrx = 0;
           f_test_complete = 1;
           f_test_fail = 1;
           f_test_abort = 1;
-          $display("ABORT:  Received %g more packets than intended to send!", f_total_o_data_count-(WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS));
-          $display("ABORT:  This might be a simulator, rather than a network, fault!", f_total_o_data_count-(WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS));
+          $display("ABORT:  Received %g more packets than intended to send!", f_total_o_data_count-(WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS));
+          $display("ABORT:  This might be a simulator, rather than a network, fault!", f_total_o_data_count-(WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS));
           $display("ABORT:  Simulated %g packets.  Transmitted %g packets.  Received %g packets", f_total_s_i_data_count, f_total_i_data_count, f_total_o_data_count);          
           $display(""); 
         end
-      end else if ((f_total_o_data_count >= (WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) && (f_total_o_data_count == f_total_i_data_count)) begin
+      end else if ((f_total_o_data_count >= (WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) && (f_total_o_data_count == f_total_i_data_count)) begin
         if (f_drain_count < 100) begin
           f_drain_count = f_drain_count + 1;
         end else begin
@@ -665,9 +691,9 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------   
   initial begin
     $display("");
-    $display("approximately %g packets will be sent and measured at an offered traffic ratio of %g%%", WARM_UP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS, PACKET_RATE);
-    if (WARM_UP_PACKETS > 0) begin
-    $display("To ensure the network is steady, %g warm up packets will be sent", WARM_UP_PACKETS);
+    $display("approximately %g packets will be sent and measured at an offered traffic ratio of %g%%", WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS, PACKET_RATE);
+    if (WARMUP_PACKETS > 0) begin
+    $display("To ensure the network is steady, %g warm up packets will be sent", WARMUP_PACKETS);
     end
     if (DRAIN_PACKETS > 0) begin
     $display("To ensure the network remains steady whilst finishing measurements, %g drain packets will be sent", DRAIN_PACKETS);
@@ -678,7 +704,7 @@ module ENoC_Network_tb
     $display("--------");
     $display ("");
     forever@(posedge clk) begin
-      if(f_time%20 == 0) begin
+      if(f_time%100 == 0) begin
         $display("f_time %g:  Transmitted %g packets, Received %g packets", f_time, f_total_i_data_count, f_total_o_data_count);
       end
       if (f_test_complete) begin
@@ -697,7 +723,7 @@ module ENoC_Network_tb
           $display("");
           $display("All Tests Passed!");
         end
-        if (f_test_txrx == 1) begin
+        if(f_test_txrx == 1) begin
           $display("TXRX PASS: Transmitted %g packets, received %g packets", f_total_i_data_count, f_total_o_data_count);
         end else begin
           $display("TXRX FAIL: Transmitted %g packets, received %g packets", f_total_i_data_count, f_total_o_data_count);
@@ -709,7 +735,7 @@ module ENoC_Network_tb
             end
           end          
         end
-        if (f_routing_fail_count > 0) begin
+        if(f_routing_fail_count > 0) begin
           $display("ROUTING FAIL: %g routing failures", f_routing_fail_count);
         end else begin
           $display("ROUTING PASS: no output packets were misrouted");
@@ -719,12 +745,18 @@ module ENoC_Network_tb
         $display("AVERAGE LATENCY: %g cycles", f_average_latency);
         $display("");
         
+        // Write results to file
+        //--------------------------------------------------------------------------------------------------------------
+        
         resultstxt = $fopen("results.txt","r");
-        if (resultstxt == 0) begin
+        if(resultstxt == 0) begin
           resultstxt = $fopen("results.txt","a");          
-          $fwrite(resultstxt, "STATUS, Network Type, Nodes, X Nodes, Y Nodes, Z Nodes, Input Queue Depth, VOQ, iSLIP, Load Balancing, Packet Rate, Warm-up Packets, Measure Packets, Drain Packets, Offered Traffic, Throughput, Average Latency, ,Number of Batches, Packets Per Batch, ");
-          for (int i=0; i<BATCH_NUMBER; i++) begin
+          $fwrite(resultstxt, "STATUS, Network Type, Nodes, X Nodes, Y Nodes, Z Nodes, Input Queue Depth, VOQ, iSLIP, Load Balancing, Packet Rate, Warm-up Packets, Measure Packets, Drain Packets, Offered Traffic, Throughput, Average Latency, Max Latency, ,Number of Batches, Packets Per Batch, ");
+          for(int i=0; i<BATCH_NUMBER; i++) begin
             $fwrite(resultstxt, "Batch %g, ", i);
+          end
+          for(int i=0; i<100; i++) begin
+            $fwrite(resultstxt, "Freq %g, ", i);
           end
           $fdisplay(resultstxt, "END OF DATA, ");
           $fclose(resultstxt);
@@ -761,10 +793,14 @@ module ENoC_Network_tb
         `else
           $fwrite(resultstxt, "OTHER, %g, N/A, N/A, N/A, %g, N/A, N/A, N/A, ", NODES, INPUT_QUEUE_DEPTH);
         `endif
-        $fwrite(resultstxt, "%g, %g, %g, %g, %g, %g, %g, , %g, %g, ", PACKET_RATE, WARM_UP_PACKETS, MEASURE_PACKETS, DRAIN_PACKETS, PACKET_RATE, f_throughput, f_average_latency, BATCH_NUMBER, BATCH_SIZE);
+        $fwrite(resultstxt, "%g, %g, %g, %g, %g, %g, %g, %g, , %g, %g, ", PACKET_RATE, WARMUP_PACKETS, MEASURE_PACKETS, DRAIN_PACKETS, PACKET_RATE, f_throughput, f_average_latency, f_max_latency, BATCH_NUMBER, BATCH_SIZE);
         for (int i=0; i<BATCH_NUMBER; i++) begin
           $fwrite(resultstxt, "%g, ", f_batch_average_latency[i]);
         end
+        $fwrite(resultstxt, ", , ");
+        for (int i=0; i<100; i++) begin
+          $fwrite(resultstxt, "%g, ", f_latency_frequency[i]);
+        end        
         $fdisplay(resultstxt, "END OF DATA, ");
         $fclose(resultstxt); 
         $stop(1);

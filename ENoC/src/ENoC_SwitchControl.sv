@@ -23,7 +23,7 @@ module ENoC_SwitchControl
   
   output logic [0:M-1][0:N-1] o_output_grant); // Each output grants the [c,n,e,s,w] input 
   
-         logic [0:M-1][0:N-1] l_req_matrix;    // Packed requests for the [c,n,e,s,w] output
+         logic [0:N-1][0:M-1] l_req_matrix;    // Packed requests for the [c,n,e,s,w] output
   
   `ifdef VOQ
 

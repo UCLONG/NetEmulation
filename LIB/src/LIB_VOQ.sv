@@ -25,9 +25,7 @@ module LIB_VOQ
   input  packet_t         i_data,     // Input data from upstream router
   input  logic    [0:M-1] i_data_val, // Validates data and indicates required output (thus which VC is required)
   output logic            o_en,       // Enables data from upstream router, depends on which VC is requested
-  output logic            o_full,
-  output logic            o_near_full,
-  
+
   // Downstream Bus.
   // ------------------------------------------------------------------------------------------------------------------
   output packet_t         o_data,     // Outputs data from a single FIFO to Switch according to i_en
@@ -38,8 +36,6 @@ module LIB_VOQ
   // ------------------------------------------------------------------------------------------------------------------
          packet_t [0:M-1] l_o_data;
          logic    [0:M-1] l_o_en;
-         logic    [0:M-1] l_o_full;
-         logic    [0:M-1] l_o_near_full;
          
   // Virtual Channnels
   // ------------------------------------------------------------------------------------------------------------------
@@ -56,26 +52,33 @@ module LIB_VOQ
                                .o_data(l_o_data[i]),       // Needs multiplexing to a single output dependent upon i_en
                                .o_data_val(o_data_val[i]), // To the Arbiter
                                .o_en(l_o_en[i]),           // Output to downstream router dependent upon request
-                               .o_full(l_o_full[i]),                  // Not connected, o_en used for flow control.
-                               .o_near_full(l_o_near_full[i]),
+                               .o_full(),                  // Not connected, o_en used for flow control.
+                               .o_near_full(),
                                .o_empty(),                 // Not connected, not required for simple flow control
                                .o_near_empty());           // Not connected, not required for simple flow control
     end
   endgenerate
   
-  // Multiplex output data and output enable from each virtual channel to the single channel according to i_en and
+  // Multiplex output data and output enable etc from each virtual channel to the single channel according to i_en and
   // i_data_val respectively.  As i_en and i_data_val are onehot, with position 0 being at the far left, the shift left
   //  operation compares the values with another onehot value.
   // ------------------------------------------------------------------------------------------------------------------
   always_comb begin
     o_data = '0;
+    o_en   = 0;
     for(int i=0; i<M; i++) begin
-      if(i_en == (1<<(M-1)-i)) o_data = l_o_data[i];
+      if(i_en       == (1<<(M-1)-i)) begin 
+        o_data      <= l_o_data[i];
+      end
+      // catch signals that speculatively apply valid
+      //if(i_data_val == (1<<(M-1)-i)) begin
+      //  o_en        <= l_o_en[i];
+      // provide an output enable for signals that look for the enable signal before asserting (such as when enable is
+      // used for arbitration.
+      //end else begin
+      o_en        = &l_o_en;
+      //end
     end
   end
-  
-  assign o_en        = &l_o_en;
-  assign o_full      = &l_o_full;
-  assign o_near_full = &l_o_near_full;
   
 endmodule
