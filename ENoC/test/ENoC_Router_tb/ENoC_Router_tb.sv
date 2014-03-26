@@ -13,7 +13,7 @@
 `include "ENoC_Functions.sv"
 `include "ENoC_Config.sv"
 
-module ENoC_Network_tb 
+module ENoC_Router_tb 
 
 // --------------------------------------------------------------------------------------------------------------------
 // PARAMETERS
@@ -25,7 +25,6 @@ module ENoC_Network_tb
 #(parameter   integer SEED               = 0,
   parameter           CLK_PERIOD         = 5ns,
   parameter   integer PACKET_RATE        = 100,     // Offered traffic as percent of capacity
-  parameter   integer PACKET_BURST_SIZE  = 1,
   parameter   integer WARMUP_PACKETS     = 1000,  // Number of packets to warm-up the network
   parameter   integer MEASURE_PACKETS    = 5000,  // Number of packets to be measured
   parameter   integer DRAIN_PACKETS      = 3000,    // Number of packets to drain the network
@@ -37,6 +36,9 @@ module ENoC_Network_tb
     parameter integer X_NODES = `X_NODES,                     // Number of node columns
     parameter integer Y_NODES = `Y_NODES,                     // Number of node rows
     parameter integer Z_NODES = `Z_NODES,                     // Number of node layers
+    parameter integer X_LOC   = 1,
+    parameter integer Y_LOC   = 1,
+    parameter integer Z_LOC   = 1,    
     parameter integer NODES   = `X_NODES*`Y_NODES*`Z_NODES,   // Total number of nodes
     parameter integer ROUTERS = `X_NODES*`Y_NODES*`Z_NODES,   // Total number of routers
   `else
@@ -46,7 +48,7 @@ module ENoC_Network_tb
   parameter   integer N       = `N,                           // Number of inputs per router
   parameter   integer M       = `M,  
   parameter   integer INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH,  
-  parameter   integer NODE_QUEUE_SIZE = `INPUT_QUEUE_DEPTH*10);
+  parameter   integer NODE_QUEUE_SIZE = `INPUT_QUEUE_DEPTH*6);
 
 // --------------------------------------------------------------------------------------------------------------------
 // SIGNALS
@@ -54,24 +56,24 @@ module ENoC_Network_tb
   
   logic clk, reset_n;
  
-  // SIGNALS:  Node Input Bus.
+  // SIGNALS:  Router Input Bus.
   // ------------------------------------------------------------------------------------------------------------------
-  packet_t [0:NODES-1] i_data;     // Input data to network from upstream nodes
-  logic    [0:NODES-1] i_data_val; // Validates input data from upstream nodes
-  logic    [0:NODES-1] o_en;       // Enables input data from upstream nodes to network
+  packet_t [0:N-1] i_data;     // Input data to network from upstream nodes
+  logic    [0:N-1] i_data_val; // Validates input data from upstream nodes
+  logic    [0:N-1] o_en;       // Enables input data from upstream nodes to network
   
-  // SIGNALS:  Node Output Bus
+  // SIGNALS:  Router Output Bus
   // ------------------------------------------------------------------------------------------------------------------
-  logic    [0:NODES-1] i_en;       // Enables output data from network to downstream nodes
-  packet_t [0:NODES-1] o_data;     // Outputs data from network to downstream nodes
-  logic    [0:NODES-1] o_data_val; // Validates output data to downstream nodes
+  logic    [0:M-1] i_en;       // Enables output data from network to downstream nodes
+  packet_t [0:M-1] o_data;     // Outputs data from network to downstream nodes
+  logic    [0:M-1] o_data_val; // Validates output data to downstream nodes
   
   // SIGNALS:  Input Queue FIFO signals
   // ------------------------------------------------------------------------------------------------------------------
-  packet_t [0:NODES-1] s_i_data;     // Input data from upstream [core, north, east, south, west]
-  logic    [0:NODES-1] s_i_data_val; // Validates data from upstream [core, north, east, south, west]
-  logic    [0:NODES-1] l_i_data_val; // Used to create i_data_val depending on the value of o_en
-  logic    [0:NODES-1] f_full;       // Indicates that the node queue is saturated
+  packet_t [0:N-1] s_i_data;     // Input data from upstream [core, north, east, south, west]
+  logic    [0:N-1] s_i_data_val; // Validates data from upstream [core, north, east, south, west]
+  logic    [0:N-1] l_i_data_val; // Used to create i_data_val depending on the value of o_en
+  logic    [0:N-1] f_full;       // Indicates that the node queue is saturated
   
 // --------------------------------------------------------------------------------------------------------------------
 // FLAGS
@@ -79,13 +81,13 @@ module ENoC_Network_tb
   
   // FLAGS:  Random
   // ------------------------------------------------------------------------------------------------------------------   
-  logic [0:NODES-1] f_data_val;
+  logic [0:N-1] f_data_val;
   `ifdef TORUS  
-    logic [0:NODES-1][log2(X_NODES)-1:0] f_x_dest;
-    logic [0:NODES-1][log2(Y_NODES)-1:0] f_y_dest;
-    logic [0:NODES-1][log2(Z_NODES)-1:0] f_z_dest;
+    logic [0:N-1][log2(X_NODES)-1:0] f_x_dest;
+    logic [0:N-1][log2(Y_NODES)-1:0] f_y_dest;
+    logic [0:N-1][log2(Z_NODES)-1:0] f_z_dest;
   `else
-    logic [0:NODES-1][log2(NODES)-1:0] f_dest;
+    logic [0:N-1][log2(NODES)-1:0] f_dest;
   `endif
   
   // FLAGS:  Control
@@ -93,11 +95,11 @@ module ENoC_Network_tb
   longint f_time;                       // Pseudo time value/clock counter
   integer f_drain_count;                // Counts cycles computer has been draining for
   
-  integer f_port_s_i_data_count [0:NODES-1]; // Count number of packets simulated and added to the node queues
+  integer f_port_s_i_data_count [0:N-1]; // Count number of packets simulated and added to the node queues
   integer f_total_s_i_data_count;            // Count total number of simulated packets
-  integer f_port_i_data_count [0:NODES-1];   // Count number of packets that left the node, transmitted on each port
+  integer f_port_i_data_count [0:N-1];   // Count number of packets that left the node, transmitted on each port
   integer f_total_i_data_count;              // Count total number of transmitted packets
-  integer f_port_o_data_count [0:NODES-1];   // Count number of received packets on each port
+  integer f_port_o_data_count [0:M-1];   // Count number of received packets on each port
   integer f_total_o_data_count;              // Count total number of received packets
   
   logic   [0:NODES-1][999:0] f_tx_packet;
@@ -114,11 +116,11 @@ module ENoC_Network_tb
   real    f_batch_measured_packet_count [0:BATCH_NUMBER-1]; // Number of packets measured per batch
   integer f_batch_number;                                    // Used to reference batches
   
-  real    f_throughput_port_o_packet_count [0:NODES-1]; // counts number of packets received over a given number of cycles
+  real    f_throughput_port_o_packet_count [0:M-1]; // counts number of packets received over a given number of cycles
   real    f_throughput_total_o_packet_count;            // counts number of packets received over a given number of cycles  
-  real    f_throughput_port_i_packet_count [0:NODES-1]; // counts number of packets sent over a given number of cycles
+  real    f_throughput_port_i_packet_count [0:N-1]; // counts number of packets sent over a given number of cycles
   real    f_throughput_total_i_packet_count;            // counts number of packets simulated over a given number of cycles
-  real    f_throughput_port_s_packet_count [0:NODES-1]; // counts number of packets simulated over a given number of cycles
+  real    f_throughput_port_s_packet_count [0:N-1]; // counts number of packets simulated over a given number of cycles
   real    f_throughput_total_s_packet_count;            // counts number of packets sent over a given number of cycles
   real    f_throughput_cycle_count;                     // counts the number of cycles f_throughput_packet_count has been counting
   real    f_throughput;                                 // calculates throughput during the measure period
@@ -139,46 +141,21 @@ module ENoC_Network_tb
 // DUT
 // --------------------------------------------------------------------------------------------------------------------       
 
-  `ifdef TORUS
-  
-     ENoC_Network
-      DUT_ENoC_Network (.*);
-    
-  `endif
-  
-  `ifdef SO
-  
-    packet_t             l_flit_in  [0:NODES-1];
-    packet_t             l_flit_out [0:NODES-1];
-    logic    [NODES-1:0] l_full;
-    
-    // SO Network uses unpacked collection of packet_t whereas the test bench uses packed.  Swap.
-    always_comb begin
-      for(int i=0; i<NODES; i++) begin
-        l_flit_in[i] = i_data[i];
-        o_data[i]    = l_flit_out[i];
-        o_en[i]      = ~l_full[i];
-      end
-    end
-    
-    // DUT SO
-    network
-      DUT_network (.clk(clk),
-                   .rst(~reset_n),
-                   .flit_in(l_flit_in),
-                   .flit_out(l_flit_out),
-                   .full(l_full));
-    
-    // SO Network contains valid in packet_t and does not provide any other valid signal.  That valid is connected
-    // to the one the test bench looks for here.  
-    always_comb begin
-      o_data_val = 0;
-      for(int i=0; i<NODES; i++) begin
-        o_data_val[i] = o_data[i].valid;
-      end
-    end
-  
-  `endif
+  ENoC_Router #(.X_NODES(X_NODES),
+                .Y_NODES(Y_NODES),
+                .Z_NODES(Z_NODES),
+                .X_LOC(X_LOC),.Y_LOC(Y_LOC), .Z_LOC(Z_LOC),
+                .INPUT_QUEUE_DEPTH(INPUT_QUEUE_DEPTH),
+                .N(N),
+                .M(M))
+    DUT_ENoC_Router (.clk(clk),
+                     .reset_n(reset_n),
+                     .i_data(i_data),          // From the upstream routers and nodes
+                     .i_data_val(i_data_val),  // From the upstream routers and nodes
+                     .o_en(o_en),              // To the upstream routers
+                     .o_data(o_data),         // To the downstream routers
+                     .o_data_val(o_data_val), // To the downstream routers
+                     .i_en(i_en));             // From the downstream routers
 
 // --------------------------------------------------------------------------------------------------------------------
 // SIMULATION
@@ -219,11 +196,11 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(posedge clk) begin
     if(~reset_n) begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<M; i++) begin
         i_en[i] <= 0;
       end
     end else begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<M; i++) begin
         i_en[i] <= ($urandom_range(100,1) <= DOWNSTREAM_EN_RATE) ? 1 : 0;
       end
     end
@@ -233,7 +210,7 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------
   genvar i;
   generate
-    for (i=0; i<NODES; i++) begin : GENERATE_INPUT_QUEUES
+    for (i=0; i<N; i++) begin : GENERATE_INPUT_QUEUES
       LIB_FIFO_packet_t #(.DEPTH(NODE_QUEUE_SIZE))
         gen_LIB_FIFO_packet_t (.clk,
                                .ce(1'b1),
@@ -254,7 +231,7 @@ module ENoC_Network_tb
   // Check for an output enable before raising valid
   always_comb begin
     i_data_val = '0;
-    for(int i=0; i<NODES; i++) begin
+    for(int i=0; i<N; i++) begin
       i_data_val[i] = l_i_data_val[i] && o_en[i];
     end
   end  
@@ -273,7 +250,7 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------
   always_ff@(posedge clk) begin
     if(~reset_n) begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<N; i++) begin
         `ifdef TORUS
           f_x_dest[i] <= 0;
           f_y_dest[i] <= 0;
@@ -283,7 +260,7 @@ module ENoC_Network_tb
         `endif
       end
     end else begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<N; i++) begin
         `ifdef TORUS
           f_x_dest[i] <= $urandom_range(X_NODES-1, 0);
           f_y_dest[i] <= $urandom_range(Y_NODES-1, 0);
@@ -295,8 +272,8 @@ module ENoC_Network_tb
     end
   end
   
-  // RANDOM FLAG:  Valid (Bernoulli) and bursty (fixed burst size)
-  // ------------------------------------------------------------------------------------------------------------------
+  // RANDOM FLAG:  Valid (Bernoulli)
+  // ------------------------------------------------------------------------------------------------------------------ 
   always_ff@(posedge clk) begin
     if(~reset_n) begin
       for(int i=0; i<NODES; i++) begin
@@ -316,24 +293,20 @@ module ENoC_Network_tb
   
     always_ff@(posedge clk) begin
       if(~reset_n) begin
-        for (int z=0; z<Z_NODES; z++) begin
-          for (int y=0; y<Y_NODES; y++) begin
-            for (int x=0; x<X_NODES; x++) begin
-              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].data      <= 1; // Data field used to number packets
-              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].x_source  <= x; // Source field used to declare which input port packet was presented to
-              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].y_source  <= y; // Source field used to declare which input port packet was presented to
-              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].z_source  <= z; // Source field used to declare which input port packet was presented to        
-              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].x_dest    <= 0; // Destination field indicates where packet is to be routed to
-              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].y_dest    <= 0; // Destination field indicates where packet is to be routed to 
-              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].z_dest    <= 0; // Destination field indicates where packet is to be routed to         
-              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].valid     <= 0; // Valid field indicates if the packet is valid or not
-              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].timestamp <= 0; // Timestamp field used to indicate when packet was generated
-              s_i_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].measure   <= 0; // Measure field used to indicate if packet should be measured           
-            end
-          end
+        for (int i=0; i<N; i++) begin
+              s_i_data[i].data      <= 1; // Data field used to number packets
+              s_i_data[i].x_source  <= i; // Source field used to declare which input port packet was presented to
+              s_i_data[i].y_source  <= i; // Source field used to declare which input port packet was presented to
+              s_i_data[i].z_source  <= i; // Source field used to declare which input port packet was presented to        
+              s_i_data[i].x_dest    <= 0; // Destination field indicates where packet is to be routed to
+              s_i_data[i].y_dest    <= 0; // Destination field indicates where packet is to be routed to 
+              s_i_data[i].z_dest    <= 0; // Destination field indicates where packet is to be routed to         
+              s_i_data[i].valid     <= 0; // Valid field indicates if the packet is valid or not
+              s_i_data[i].timestamp <= 0; // Timestamp field used to indicate when packet was generated
+              s_i_data[i].measure   <= 0; // Measure field used to indicate if packet should be measured           
         end
       end else begin
-        for(int i=0; i<NODES; i++) begin
+        for(int i=0; i<N; i++) begin
           s_i_data[i].data      <= s_i_data[i].valid ? s_i_data[i].data  + 1 : s_i_data[i].data;
           s_i_data[i].x_dest    <= f_x_dest[i];
           s_i_data[i].y_dest    <= f_y_dest[i];
@@ -349,7 +322,7 @@ module ENoC_Network_tb
   
     always_ff@(posedge clk) begin
       if(~reset_n) begin
-        for (int i=0; i<NODES; i++) begin
+        for (int i=0; i<N; i++) begin
           s_i_data[i].data      <= 1; // Data field used to number packets
           s_i_data[i].source    <= i; // Source field used to declare which input port packet was presented to         
           s_i_data[i].dest      <= 0; // Destination field indicates where packet is to be routed to         
@@ -358,7 +331,7 @@ module ENoC_Network_tb
           s_i_data[i].measure   <= 0; // Measure field used to indicate if packet should be measured           
         end
       end else begin
-        for(int i=0; i<NODES; i++) begin
+        for(int i=0; i<N; i++) begin
           s_i_data[i].data      <= s_i_data[i].valid ? s_i_data[i].data  + 1 : s_i_data[i].data;
           s_i_data[i].dest      <= f_dest[i];
           s_i_data[i].valid     <= (f_total_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) ? f_data_val[i] : 0;
@@ -373,7 +346,7 @@ module ENoC_Network_tb
   // packet_t carries a valid in the packet, the some flow controls, such as that used by LIB_FIFO_packet_t use separate
   // valid/enable protocol and flag gen.  For simplicity, they are just connected here. 
   always_comb begin
-    for(int i=0; i<NODES; i++) begin
+    for(int i=0; i<N; i++) begin
       s_i_data_val[i] = s_i_data[i].valid;
     end
   end
@@ -387,39 +360,36 @@ module ENoC_Network_tb
   // Uses the count of the simulated input data so that even if the network is saturated and packets are being dropped
   // throughput measurement will still take place
   // ------------------------------------------------------------------------------------------------------------------  
+  // Needs separating into output and input loops with N and M incase N and M differ.
   always_ff@(negedge clk) begin
     if(~reset_n) begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<N; i++) begin
         f_throughput_port_o_packet_count[i] <= 0;
         f_throughput_port_i_packet_count[i] <= 0;  
         f_throughput_port_s_packet_count[i] <= 0;           
       end     
       f_throughput_cycle_count  <= 0;      
     end else begin
-      for(int i=0; i<NODES; i++) begin
-        f_throughput_port_o_packet_count[i] <= (o_data_val[i] 
-                                               && (((f_total_s_i_data_count > WARMUP_PACKETS) 
-                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS)))
-                                               || (f_test_saturated == 1)))                                              
+      for(int i=0; i<N; i++) begin
+        f_throughput_port_o_packet_count[i] <= ((o_data_val[i]) 
+                                               && (f_total_s_i_data_count > WARMUP_PACKETS) 
+                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS))) 
                                                ? f_throughput_port_o_packet_count[i] + 1 
                                                : f_throughput_port_o_packet_count[i];
-        f_throughput_port_i_packet_count[i] <= (i_data_val[i] 
-                                               && (((f_total_s_i_data_count > WARMUP_PACKETS) 
-                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS)))
-                                               || (f_test_saturated == 1)))                                                 
+        f_throughput_port_i_packet_count[i] <= ((i_data_val[i]) 
+                                               && (f_total_s_i_data_count > WARMUP_PACKETS) 
+                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS))) 
                                                ? f_throughput_port_i_packet_count[i] + 1 
                                                : f_throughput_port_i_packet_count[i];                                               
-        f_throughput_port_s_packet_count[i] <= (s_i_data_val[i] 
-                                               && (((f_total_s_i_data_count > WARMUP_PACKETS) 
-                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS)))
-                                               || (f_test_saturated == 1))) 
+        f_throughput_port_s_packet_count[i] <= ((s_i_data_val[i]) 
+                                               && (f_total_s_i_data_count > WARMUP_PACKETS) 
+                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS))) 
                                                ? f_throughput_port_s_packet_count[i] + 1 
                                                : f_throughput_port_s_packet_count[i]; 
-        f_throughput_cycle_count    <= (((f_total_s_i_data_count > WARMUP_PACKETS) 
-                                    && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS)))
-                                    || (f_test_saturated == 1))                                     
+        f_throughput_cycle_count    <= ((f_total_s_i_data_count > WARMUP_PACKETS) 
+                                    && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS))) 
                                     ? f_throughput_cycle_count + 1 
-                                    : f_throughput_cycle_count;     
+                                    : f_throughput_cycle_count;    
      end
     end
   end
@@ -431,19 +401,19 @@ module ENoC_Network_tb
     f_throughput = 0;
     f_throughput_offered = 0;
     f_throughput_simulated = 0;
-    for (int i=0; i<NODES; i++) begin
+    for (int i=0; i<N; i++) begin
       f_throughput_total_o_packet_count = f_throughput_port_o_packet_count[i] + f_throughput_total_o_packet_count;
       f_throughput_total_i_packet_count = f_throughput_port_i_packet_count[i] + f_throughput_total_i_packet_count;            
       f_throughput_total_s_packet_count = f_throughput_port_s_packet_count[i] + f_throughput_total_s_packet_count;
     end
     if (f_throughput_total_o_packet_count != 0) begin
-      f_throughput = (f_throughput_total_o_packet_count/(f_throughput_cycle_count*NODES))*100;
+      f_throughput = (f_throughput_total_o_packet_count/(f_throughput_cycle_count*N))*100;
     end
     if (f_throughput_total_i_packet_count !=0) begin
-      f_throughput_offered = (f_throughput_total_i_packet_count/(f_throughput_cycle_count*NODES))*100;
+      f_throughput_offered = (f_throughput_total_i_packet_count/(f_throughput_cycle_count*N))*100;
     end
     if (f_throughput_total_s_packet_count !=0) begin
-      f_throughput_simulated = (f_throughput_total_s_packet_count/(f_throughput_cycle_count*NODES))*100;
+      f_throughput_simulated = (f_throughput_total_s_packet_count/(f_throughput_cycle_count*N))*100;
     end
   end
   
@@ -451,13 +421,13 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------ 
   always_ff@(negedge clk) begin
     if(~reset_n) begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<N; i++) begin
         f_port_s_i_data_count[i] <= 0;
         f_port_i_data_count[i]   <= 0;
         f_port_o_data_count[i]   <= 0;
       end          
     end else begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<N; i++) begin
         f_port_s_i_data_count[i] <= s_i_data[i].valid        ? f_port_s_i_data_count[i] + 1 : f_port_s_i_data_count[i];
         f_port_i_data_count[i]   <= i_data_val[i] && o_en[i] ? f_port_i_data_count[i]   + 1 : f_port_i_data_count[i];
         f_port_o_data_count[i]   <= o_data_val[i]            ? f_port_o_data_count[i]   + 1 : f_port_o_data_count[i];
@@ -469,7 +439,7 @@ module ENoC_Network_tb
     f_total_s_i_data_count = 0;   
     f_total_i_data_count   = 0;
     f_total_o_data_count   = 0;
-    for (int i=0; i<NODES; i++) begin
+    for (int i=0; i<N; i++) begin
       f_total_s_i_data_count = f_port_s_i_data_count[i] + f_total_s_i_data_count;
       f_total_i_data_count   = f_port_i_data_count[i]   + f_total_i_data_count;
       f_total_o_data_count   = f_port_o_data_count[i]   + f_total_o_data_count;    
@@ -481,12 +451,12 @@ module ENoC_Network_tb
 
   always_ff@(negedge clk) begin
     if(~reset_n) begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<N; i++) begin
         f_tx_packet[i] <= '0;
         f_rx_packet[i] <= '0;
       end
     end else begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<N; i++) begin
         if(i_data_val[i] && o_en[i]) begin 
           `ifdef TORUS
             f_tx_packet[i][i_data[i].data] <= 1; 
@@ -512,7 +482,7 @@ module ENoC_Network_tb
     f_average_latency       = 0;
     f_measured_packet_count = 0;
     forever @(negedge clk) begin
-      for (int i=0; i<NODES; i++) begin
+      for (int i=0; i<N; i++) begin
         if ((o_data_val[i] == 1) && (o_data[i].measure == 1)) begin
           f_total_latency = f_total_latency + (f_time - o_data[i].timestamp);
           f_measured_packet_count = f_measured_packet_count + 1;
@@ -536,7 +506,7 @@ module ENoC_Network_tb
     end
     f_batch_number = 0;
     forever @(negedge clk) begin
-      for (int i=0; i<NODES; i++) begin
+      for (int i=0; i<N; i++) begin
         if ((o_data_val[i] == 1) && (f_batch_measured_packet_count[f_batch_number] < BATCH_SIZE)) begin
           f_batch_total_latency[f_batch_number] = f_batch_total_latency[f_batch_number] + (f_time - o_data[i].timestamp);
           f_batch_measured_packet_count[f_batch_number] = f_batch_measured_packet_count[f_batch_number] + 1;
@@ -562,7 +532,7 @@ module ENoC_Network_tb
     if(~reset_n) begin
       f_max_latency <= '0;  
     end else begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<N; i++) begin
         if(((f_time - o_data[i].timestamp) > f_max_latency) && (o_data_val[i] == 1)) begin
           f_max_latency <= (f_time - o_data[i].timestamp);
         end else begin
@@ -580,7 +550,7 @@ module ENoC_Network_tb
         f_latency_frequency[i] <= 0; 
       end        
     end else begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<N; i++) begin
         if(o_data[i].valid == 1) begin
           f_latency_frequency[(f_time - o_data[i].timestamp)] <= f_latency_frequency[(f_time - o_data[i].timestamp)] + 1;
         end else begin
@@ -595,21 +565,7 @@ module ENoC_Network_tb
   initial begin
     f_test_saturated = 0;
     forever @(negedge clk) begin
-      `ifdef TORUS
-        for (int z=0; z<Z_NODES; z++) begin
-          for (int y=0; y<Y_NODES; y++) begin
-            for (int x=0; x<X_NODES; x++) begin
-              if ((f_full[(z*X_NODES*Y_NODES)+(y*X_NODES)+x] == 0) && (f_test_saturated !=1)) begin
-                $display("WARNING:  Input port %g, (xyz)=(%g,%g,%g), saturated at f_time %g", (z*X_NODES*Y_NODES)+(y*X_NODES)+x, x, y, z, f_time);
-                $display("");
-                f_test_saturated = 1;
-                f_test_fail = 1;
-              end
-            end
-          end
-        end
-      `else
-        for (int i=0; i<NODES; i++) begin
+        for (int i=0; i<N; i++) begin
           if ((f_full[i] == 0) && (f_test_saturated !=1)) begin
             $display("WARNING:  Input port %g saturated at f_time %g", i, f_time);
             $display("");
@@ -617,7 +573,6 @@ module ENoC_Network_tb
             f_test_fail = 1;
           end
         end      
-      `endif
     end
   end
   
@@ -625,34 +580,47 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------
   initial begin
     f_routing_fail_count = 0;
-    forever @(negedge clk) begin    
-      `ifdef TORUS
-        for (int z=0; z<Z_NODES; z++) begin
-          for (int y=0; y<Y_NODES; y++) begin
-            for (int x=0; x<X_NODES; x++) begin
-              if (o_data_val[(z*X_NODES*Y_NODES)+(y*X_NODES)+x] == 1) begin
-                if ((o_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].x_dest != x) || (o_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].y_dest != y) || (o_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].z_dest != z)) begin
-                  $display ("Routing error number %g at time %g.  The packet output to node %g (x,y,z) = (%g,%g,%g) should have been sent to node (x,y,z) = (%g,%g,%g)", f_routing_fail_count + 1, f_time, (z*X_NODES*Y_NODES)+(y*X_NODES)+x, x, y, z, o_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].x_dest, o_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].y_dest, o_data[(z*X_NODES*Y_NODES)+(y*X_NODES)+x].z_dest);
-                  $display("");
-                  f_routing_fail_count = f_routing_fail_count + 1;
-                  f_test_fail  = 1;
-                end
-              end
-            end
+    forever @(negedge clk) begin
+      for (int i=0; i<`M; i++) begin
+        if (o_data_val[i] == 1) begin
+          if ((o_data[i].x_dest > X_LOC) && (i != 2)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 2", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest < X_LOC) && (i != 4)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 4", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest > Y_LOC) && (i != 1)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 1", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest < Y_LOC) && (i != 3)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 3", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (o_data[i].z_dest > Z_LOC) && (i != 6)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 6", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (o_data[i].z_dest < Z_LOC) && (i != 5)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 5", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
+          end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (o_data[i].z_dest == Z_LOC) && (i != 0)) begin
+            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 0", f_routing_fail_count + 1, f_time, i);
+            $display("");
+            f_routing_fail_count = f_routing_fail_count + 1;
+            f_test_fail  = 1;
           end
-        end    
-      `else
-        for (int i=0; i<NODES; i++) begin
-          if (o_data_val[i] == 1) begin
-            if (o_data[i].dest != i) begin
-              $display ("Routing error number %g at time %g.  The packet output to node %g should have been sent to node %g", f_routing_fail_count + 1, f_time, i, o_data[i].dest);
-              $display("");
-              f_routing_fail_count = f_routing_fail_count + 1;
-              f_test_fail  = 1;              
-            end            
-          end          
-        end        
-      `endif
+        end
+      end
     end
   end
   
@@ -717,12 +685,12 @@ module ENoC_Network_tb
     $display("");
     $display("approximately %g packets will be sent and measured at an offered traffic ratio of %g%%", WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS, PACKET_RATE);
     if (WARMUP_PACKETS > 0) begin
-    $display("To ensure the network is steady, %g warm up packets will be sent", WARMUP_PACKETS);
+    $display("To ensure the router is steady, %g warm up packets will be sent", WARMUP_PACKETS);
     end
     if (DRAIN_PACKETS > 0) begin
     $display("To ensure the network remains steady whilst finishing measurements, %g drain packets will be sent", DRAIN_PACKETS);
     end
-    $display("The simulated nodes will accept data %g%% of the time", DOWNSTREAM_EN_RATE);
+    $display("The simulated downstream routers and node will accept data %g%% of the time", DOWNSTREAM_EN_RATE);
     $display("");
     $display("TEST LOG");
     $display("--------");
@@ -732,7 +700,7 @@ module ENoC_Network_tb
         $display("f_time %g:  Transmitted %g packets, Received %g packets", f_time, f_total_i_data_count, f_total_o_data_count);
       end
       if (f_test_complete) begin
-			  for(int i=0; i<NODES; i++) begin
+			  for(int i=0; i<N; i++) begin
           for(int j=0; j<1000; j++) begin
             if(f_rx_packet[i][j] != f_tx_packet[i][j]) begin
             $display("It appears that packet number %g, transmitted on port %g, was never received", j, i);
@@ -821,8 +789,6 @@ module ENoC_Network_tb
           `endif
           `ifdef XYZSWAP
             $fwrite(resultstxt, "YES, ");
-          `elsif XYSWAP
-            $fwrite(resultstxt, "YES, ");          
           `else
             $fwrite(resultstxt, "NO, ");  
           `endif 
