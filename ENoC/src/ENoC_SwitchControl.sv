@@ -18,12 +18,17 @@ module ENoC_SwitchControl
   input  logic ce,
   input  logic reset_n,
   
-  input  logic        [0:M-1] i_en,            // hold ports signal from downstream router
-  input  logic [0:N-1][0:M-1] i_output_req,    // each local input unit requests [c,n,e,s,w] output port
+  input  logic        [0:M-1] i_en,            // signal from downstream router that indicates if it is available
+  input  logic [0:N-1][0:M-1] i_output_req,    // N local input units requests up to M output ports
   
-  output logic [0:M-1][0:N-1] o_output_grant); // Each output grants the [c,n,e,s,w] input 
+  output logic [0:M-1][0:N-1] o_output_grant,  // Each of the M outputs are granted to the N inputs
+  `ifdef VOQ
+  output logic [0:N-1][0:M-1] o_input_grant);  // Each of the N inputs has M VOQs.  Only one queue is granted an output.
+  `else
+  output logic        [0:N-1] o_input_grant);  // Each of the N inputs has a single input queue that can be granted
+  `endif
   
-         logic [0:N-1][0:M-1] l_req_matrix;    // Packed requests for the [c,n,e,s,w] output
+         logic [0:N-1][0:M-1] l_req_matrix;    // N Packed requests for M available output ports
   
   `ifdef VOQ
 
@@ -48,7 +53,8 @@ module ENoC_SwitchControl
                                              .ce,
                                              .reset_n,
                                              .i_request(l_req_matrix),
-                                             .o_grant(o_output_grant));
+                                             .o_o_grant(o_output_grant),
+                                             .o_i_grant(o_input_grant));
     
     `else
 
@@ -57,8 +63,8 @@ module ENoC_SwitchControl
                                                   .ce,
                                                   .reset_n,
                                                   .i_request(l_req_matrix),
-                                                  .o_grant(o_output_grant));
-
+                                                  .o_o_grant(o_output_grant),
+                                                  .o_i_grant(o_input_grant));
     `endif
 
   `else
@@ -88,6 +94,18 @@ module ENoC_SwitchControl
                                                             .o_grant(o_output_grant[i]));
       end
     endgenerate
+    
+    // indicate to input FIFOs, according to arbitration results, that data will be read. Enable is high if any of the 
+    // output_grants indicate they have accepted an input.  This creates one N bit word, which is the logical 'or' of
+    // all the output_grants, as each output_grant is an N-bit onehot vector representing a granted input.
+    // ----------------------------------------------------------------------------------------------------------------
+    always_comb begin
+      o_input_grant = '0;
+      for(int i=0; i<N; i++) begin
+        o_input_grant |= o_output_grant[i];
+        // if this fails to synthesize, this is equivalent to: l_en[0:N-1] = l_en[0:N-1] | l_output_grant[i][0:N-1];
+      end
+    end 
 
   `endif
 

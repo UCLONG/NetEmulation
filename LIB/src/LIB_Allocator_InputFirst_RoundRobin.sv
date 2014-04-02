@@ -19,7 +19,8 @@ module LIB_Allocator_InputFirst_RoundRobin
   
   input  logic [0:N-1][0:M-1] i_request, // N, M-bit request vectors.
   
-  output logic [0:M-1][0:N-1] o_grant);  // M, N-bit Grant vectors
+  output logic [0:M-1][0:N-1] o_o_grant,   // M, N-bit Grant vectors
+  output logic [0:N-1][0:M-1] o_i_grant); // N, M-bit Grant vectors (i.e the transpose)
   
          logic [0:N-1][0:M-1] l_input_grant;  // Result from input arbitration
          logic [0:M-1][0:N-1] l_intermediate; // Transpose of input grant result for output arbitration
@@ -58,6 +59,7 @@ module LIB_Allocator_InputFirst_RoundRobin
   
   // transposition of the input arbitration grant for input into the Output arbitration stage.
   always_comb begin
+    l_intermediate = '0;
     for(int i=0; i<M; i++) begin
       for(int j=0; j<N; j++) begin
         l_intermediate[i][j] = l_input_grant[j][i];
@@ -76,7 +78,7 @@ module LIB_Allocator_InputFirst_RoundRobin
                                  .ce,
                                  .reset_n,
                                  .i_request(l_intermediate[i]),
-                                 .o_grant(o_grant[i]));
+                                 .o_grant(o_o_grant[i]));
     end
   endgenerate
   
@@ -89,10 +91,19 @@ module LIB_Allocator_InputFirst_RoundRobin
                                 .ce,
                                 .reset_n,
                                 .i_request(l_intermediate[i]),
-                                .o_grant(o_grant[i]));
+                                .o_grant(o_o_grant[i]));
     end
   endgenerate
   
   `endif
   
+  // transposition of the output arbitration grant for indicating an enable to the requesting VCs
+  always_comb begin
+    o_i_grant = '0;
+    for(int i=0; i<N; i++) begin
+      for(int j=0; j<M; j++) begin
+        o_i_grant[i][j] = o_o_grant[j][i];
+      end
+    end
+  end
 endmodule

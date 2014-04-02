@@ -128,9 +128,9 @@ module ENoC_Router
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS    
         ENoC_RouteCalculator #(`ifdef TORUS
-                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC))
+                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC), .M(M))
                                `else
-                                 .NODES(NODES), .LOC(LOC))
+                                 .NODES(NODES), .LOC(LOC), .M(M))
                                `endif
           gen_ENoC_RouteCalculator (`ifdef XYSWAP
                                       .clk(clk),
@@ -168,17 +168,7 @@ module ENoC_Router
                        .o_data_val(l_output_req[i]), // Packed request word to SwitchControl
                        .i_en(l_en[i]));              // Packed grant word from SwitchControl
       end
-    endgenerate
-    
-    // transposition of the output arbitration grant for indicating an enable to the VCs
-    always_comb begin
-      l_en = '0;
-      for(int i=0; i<N; i++) begin
-        for(int j=0; j<M; j++) begin
-          l_en[i][j] = l_output_grant[j][i];
-        end
-      end
-    end  
+    endgenerate 
     
   `else
   
@@ -215,9 +205,9 @@ module ENoC_Router
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS  
         ENoC_RouteCalculator #(`ifdef TORUS
-                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC))
+                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC), .M(M))
                                `else
-                                 .NODES(NODES), .LOC(LOC))
+                                 .NODES(NODES), .LOC(LOC), .M(M))
                                `endif 
           gen_ENoC_RouteCalculator (`ifdef XYSWAP
                                       .clk(clk),
@@ -240,19 +230,7 @@ module ENoC_Router
                                     .i_val(l_data_val[i]),                                      // From local FIFO
                                     .o_output_req(l_output_req[i]));                            // To Switch Control
       end
-    endgenerate
-    
-    // indicate to input FIFOs, according to arbitration results, that data will be read. Enable is high if any of the 
-    // output_grants indicate they have accepted an input.  This creates one N bit word, which is the logical 'or' of
-    // all the output_grants, as each output_grant is an N-bit onehot vector representing a granted input.
-    // ----------------------------------------------------------------------------------------------------------------
-    always_comb begin
-      l_en = '0;
-      for(int i=0; i<N; i++) begin
-        l_en |= l_output_grant[i];
-        // if this fails to synthesize, this is equivalent to: l_en[0:N-1] = l_en[0:N-1] | l_output_grant[i][0:N-1];
-      end
-    end   
+    endgenerate  
     
   `endif
  
@@ -266,7 +244,8 @@ module ENoC_Router
                              .reset_n,
                              .i_en(i_en),                      // From the downstream router
                              .i_output_req(l_output_req),      // From the local VCs or Route Calculator
-                             .o_output_grant(l_output_grant)); // To the local VCs or FIFOs
+                             .o_output_grant(l_output_grant),
+                             .o_input_grant(l_en)); // To the local VCs or FIFOs
  
   // Switch.  Switch uses onehot input from switch control.
   // ------------------------------------------------------------------------------------------------------------------

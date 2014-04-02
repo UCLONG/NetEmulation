@@ -24,21 +24,21 @@ module ENoC_Router_tb
 
 #(parameter   integer SEED               = 0,
   parameter           CLK_PERIOD         = 5ns,
-  parameter   integer PACKET_RATE        = 100,     // Offered traffic as percent of capacity
-  parameter   integer WARMUP_PACKETS     = 1000,  // Number of packets to warm-up the network
-  parameter   integer MEASURE_PACKETS    = 5000,  // Number of packets to be measured
-  parameter   integer DRAIN_PACKETS      = 3000,    // Number of packets to drain the network
-  parameter   integer DOWNSTREAM_EN_RATE = 100,    // Percent of time simulated nodes able to receive data
+  parameter   integer PACKET_RATE        = 100,   // Offered traffic as percent of capacity
+  parameter   integer WARMUP_PACKETS     = 25,    // Number of packets to warm-up the network
+  parameter   integer MEASURE_PACKETS    = 1000,  // Number of packets to be measured
+  parameter   integer DRAIN_PACKETS      = 1000,  // Number of packets to drain the network
+  parameter   integer DOWNSTREAM_EN_RATE = 100,   // Percent of time simulated nodes able to receive data
   parameter   integer BATCH_NUMBER       = 60,
   parameter   integer BATCH_SIZE         = 100,
-
+  parameter   integer HOTINPUTS          = 1,
   `ifdef TORUS
     parameter integer X_NODES = `X_NODES,                     // Number of node columns
     parameter integer Y_NODES = `Y_NODES,                     // Number of node rows
     parameter integer Z_NODES = `Z_NODES,                     // Number of node layers
     parameter integer X_LOC   = 1,
     parameter integer Y_LOC   = 1,
-    parameter integer Z_LOC   = 1,    
+    parameter integer Z_LOC   = 0,    
     parameter integer NODES   = `X_NODES*`Y_NODES*`Z_NODES,   // Total number of nodes
     parameter integer ROUTERS = `X_NODES*`Y_NODES*`Z_NODES,   // Total number of routers
   `else
@@ -102,8 +102,8 @@ module ENoC_Router_tb
   integer f_port_o_data_count [0:M-1];   // Count number of received packets on each port
   integer f_total_o_data_count;              // Count total number of received packets
   
-  logic   [0:NODES-1][999:0] f_tx_packet;
-  logic   [0:NODES-1][999:0] f_rx_packet;
+  logic   [0:N-1][999:0] f_tx_packet;
+  logic   [0:N-1][999:0] f_rx_packet;
   
   real    f_total_latency;            // Counts the total amount of time all measured packets have spent in the router
   real    f_average_latency;          // Calculates the average latency of measured packets
@@ -261,12 +261,22 @@ module ENoC_Router_tb
       end
     end else begin
       for(int i=0; i<N; i++) begin
-        `ifdef TORUS
-          f_x_dest[i] <= $urandom_range(X_NODES-1, 0);
-          f_y_dest[i] <= $urandom_range(Y_NODES-1, 0);
-          f_z_dest[i] <= $urandom_range(Z_NODES-1, 0);
+        `ifdef ROUTER_TB      
+          `ifdef TORUS
+            f_x_dest[i] <= $urandom_range(M-1, 0);
+            f_y_dest[i] <= $urandom_range(M-1, 0);
+            f_z_dest[i] <= $urandom_range(M-1, 0);
+          `else
+            f_dest[i] <= $urandom_range(NODES-1, 0);
+          `endif
         `else
-          f_dest[i] <= $urandom_range(NODES-1, 0);
+          `ifdef TORUS
+            f_x_dest[i] <= $urandom_range(X_NODES-1, 0);
+            f_y_dest[i] <= $urandom_range(Y_NODES-1, 0);
+            f_z_dest[i] <= $urandom_range(Z_NODES-1, 0);
+          `else
+            f_dest[i] <= $urandom_range(NODES-1, 0);
+          `endif
         `endif
       end
     end
@@ -276,12 +286,20 @@ module ENoC_Router_tb
   // ------------------------------------------------------------------------------------------------------------------ 
   always_ff@(posedge clk) begin
     if(~reset_n) begin
-      for(int i=0; i<NODES; i++) begin
+      for(int i=0; i<N; i++) begin
         f_data_val[i] <= 0;
       end
     end else begin
-      for(int i=0; i<NODES; i++) begin
-        f_data_val[i] <= ($urandom_range(100,1) <= PACKET_RATE) ? 1'b1 : 1'b0;
+      if(HOTINPUTS == 0) begin
+        for(int i=0; i<N; i++) begin
+          f_data_val[i] <= ($urandom_range(100,1) <= PACKET_RATE) ? 1'b1 : 1'b0;
+        end
+      end else begin
+        f_data_val[0] <= ($urandom_range(100,1) <= (PACKET_RATE*5)) ? 1'b1 : 1'b0;
+        f_data_val[1] <= ($urandom_range(100,1) <= (PACKET_RATE*3)) ? 1'b1 : 1'b0;
+        f_data_val[2] <= ($urandom_range(100,1) <= (PACKET_RATE)) ? 1'b1 : 1'b0;
+        f_data_val[3] <= ($urandom_range(100,1) <= (PACKET_RATE/2)) ? 1'b1 : 1'b0;
+        f_data_val[4] <= ($urandom_range(100,1) <= (PACKET_RATE/2)) ? 1'b1 : 1'b0;        
       end
     end
   end
@@ -466,7 +484,7 @@ module ENoC_Router_tb
         end
         if(o_data_val[i]) begin
           `ifdef TORUS
-            f_rx_packet[(o_data[i].z_source*X_NODES*Y_NODES)+(o_data[i].y_source*X_NODES)+o_data[i].x_source][o_data[i].data] <= 1;
+            f_rx_packet[o_data[i].x_source][o_data[i].data] <= 1;
           `else
             f_rx_packet[o_data[i].source][o_data[i].data] <= 1;         
           `endif
@@ -578,51 +596,62 @@ module ENoC_Router_tb
   
   // TEST FUNCTION: Routing
   // ------------------------------------------------------------------------------------------------------------------
-  initial begin
-    f_routing_fail_count = 0;
-    forever @(negedge clk) begin
-      for (int i=0; i<`M; i++) begin
-        if (o_data_val[i] == 1) begin
-          if ((o_data[i].x_dest > X_LOC) && (i != 2)) begin
-            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 2", f_routing_fail_count + 1, f_time, i);
-            $display("");
-            f_routing_fail_count = f_routing_fail_count + 1;
-            f_test_fail  = 1;
-          end else if ((o_data[i].x_dest < X_LOC) && (i != 4)) begin
-            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 4", f_routing_fail_count + 1, f_time, i);
-            $display("");
-            f_routing_fail_count = f_routing_fail_count + 1;
-            f_test_fail  = 1;
-          end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest > Y_LOC) && (i != 1)) begin
-            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 1", f_routing_fail_count + 1, f_time, i);
-            $display("");
-            f_routing_fail_count = f_routing_fail_count + 1;
-            f_test_fail  = 1;
-          end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest < Y_LOC) && (i != 3)) begin
-            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 3", f_routing_fail_count + 1, f_time, i);
-            $display("");
-            f_routing_fail_count = f_routing_fail_count + 1;
-            f_test_fail  = 1;
-          end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (o_data[i].z_dest > Z_LOC) && (i != 6)) begin
-            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 6", f_routing_fail_count + 1, f_time, i);
-            $display("");
-            f_routing_fail_count = f_routing_fail_count + 1;
-            f_test_fail  = 1;
-          end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (o_data[i].z_dest < Z_LOC) && (i != 5)) begin
-            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 5", f_routing_fail_count + 1, f_time, i);
-            $display("");
-            f_routing_fail_count = f_routing_fail_count + 1;
-            f_test_fail  = 1;
-          end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (o_data[i].z_dest == Z_LOC) && (i != 0)) begin
-            $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 0", f_routing_fail_count + 1, f_time, i);
-            $display("");
-            f_routing_fail_count = f_routing_fail_count + 1;
-            f_test_fail  = 1;
+  `ifndef ROUTER_TB
+  
+    initial begin
+      f_routing_fail_count = 0;
+      forever @(negedge clk) begin
+        for (int i=0; i<M; i++) begin
+          if (o_data_val[i] == 1) begin
+            if ((o_data[i].x_dest > X_LOC) && (i != 2)) begin
+              $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 2", f_routing_fail_count + 1, f_time, i);
+              $display("");
+              f_routing_fail_count = f_routing_fail_count + 1;
+              f_test_fail  = 1;
+            end else if ((o_data[i].x_dest < X_LOC) && (i != 4)) begin
+              $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 4", f_routing_fail_count + 1, f_time, i);
+              $display("");
+              f_routing_fail_count = f_routing_fail_count + 1;
+              f_test_fail  = 1;
+            end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest > Y_LOC) && (i != 1)) begin
+              $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 1", f_routing_fail_count + 1, f_time, i);
+              $display("");
+              f_routing_fail_count = f_routing_fail_count + 1;
+              f_test_fail  = 1;
+            end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest < Y_LOC) && (i != 3)) begin
+              $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 3", f_routing_fail_count + 1, f_time, i);
+              $display("");
+              f_routing_fail_count = f_routing_fail_count + 1;
+              f_test_fail  = 1;
+            end else if ((Z_NODES == 1) && (o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (i != 0)) begin
+              $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 0", f_routing_fail_count + 1, f_time, i);
+              $display("");
+              f_routing_fail_count = f_routing_fail_count + 1;
+              f_test_fail  = 1;   
+            end else if ((Z_NODES == 1) && (o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (i == 0)) begin
+             
+            end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (o_data[i].z_dest > Z_LOC) && (i != 6)) begin
+              $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 6", f_routing_fail_count + 1, f_time, i);
+              $display("");
+              f_routing_fail_count = f_routing_fail_count + 1;
+              f_test_fail  = 1;
+            end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (o_data[i].z_dest < Z_LOC) && (i != 5)) begin
+              $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 5", f_routing_fail_count + 1, f_time, i);
+              $display("");
+              f_routing_fail_count = f_routing_fail_count + 1;
+              f_test_fail  = 1;
+            end else if ((o_data[i].x_dest == X_LOC) && (o_data[i].y_dest == Y_LOC) && (o_data[i].z_dest == Z_LOC) && (i != 0)) begin
+              $display ("Routing error number %g at time %g.  The packet output on port %g should have left port 0", f_routing_fail_count + 1, f_time, i);
+              $display("");
+              f_routing_fail_count = f_routing_fail_count + 1;
+              f_test_fail  = 1;
+            end
           end
         end
       end
     end
-  end
+  
+  `endif
   
   // TEST FUNCTION: Comparing packets in and out.  In this case, every packet is accounted for, not just the ones for
   // which latency will be measured
@@ -632,7 +661,7 @@ module ENoC_Router_tb
     f_drain_count = 0;
     forever @(negedge clk) begin
       if (f_total_o_data_count >= ((WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) && (f_total_o_data_count != f_total_i_data_count)) begin
-        if (f_drain_count < 1000) begin
+        if (f_drain_count < 2000) begin
           f_drain_count = f_drain_count + 1;
         end else begin
           f_test_txrx = 0;
@@ -645,21 +674,21 @@ module ENoC_Router_tb
           $display(""); 
         end
       end else if ((f_total_o_data_count >= (WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) && (f_total_o_data_count == f_total_i_data_count)) begin
-        if (f_drain_count < 1000) begin
+        if (f_drain_count < 2000) begin
           f_drain_count = f_drain_count + 1;
         end else begin
           f_test_txrx = 1;
           f_test_complete = 1;        
         end
       end else if (f_test_saturated) begin
-        if (f_drain_count < 100) begin
+        if (f_drain_count < 2000) begin
           f_drain_count = f_drain_count + 1;
         end else begin
           f_test_txrx = 0;
           f_test_complete = 1;
         end
       end else if (o_data_val == 0) begin
-        if (f_drain_count <100) begin
+        if (f_drain_count <2000) begin
           f_drain_count = f_drain_count + 1;
         end else begin
           f_test_txrx = 0;
@@ -700,10 +729,14 @@ module ENoC_Router_tb
         $display("f_time %g:  Transmitted %g packets, Received %g packets", f_time, f_total_i_data_count, f_total_o_data_count);
       end
       if (f_test_complete) begin
-			  for(int i=0; i<N; i++) begin
-          for(int j=0; j<1000; j++) begin
-            if(f_rx_packet[i][j] != f_tx_packet[i][j]) begin
-            $display("It appears that packet number %g, transmitted on port %g, was never received", j, i);
+			  if(X_NODES < 5) begin
+              $display("The x_source field of the data packet was not big enough to store an individual number corresponding to each of the 7 inputs so packet identification was not performed.  For 7 input ports, x_source must be at least 3 bits, so X_NODES must be at least 5");            
+        end else begin
+          for(int i=0; i<N; i++) begin
+            for(int j=0; j<1000; j++) begin
+              if(f_rx_packet[i][j] != f_tx_packet[i][j]) begin
+                $display("It appears that packet number %g, transmitted on port %g, was never received", j, i);
+              end
             end
           end
         end  

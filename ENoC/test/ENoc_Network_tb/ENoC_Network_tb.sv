@@ -25,7 +25,6 @@ module ENoC_Network_tb
 #(parameter   integer SEED               = 0,
   parameter           CLK_PERIOD         = 5ns,
   parameter   integer PACKET_RATE        = 100,     // Offered traffic as percent of capacity
-  parameter   integer PACKET_BURST_SIZE  = 1,
   parameter   integer WARMUP_PACKETS     = 1000,  // Number of packets to warm-up the network
   parameter   integer MEASURE_PACKETS    = 5000,  // Number of packets to be measured
   parameter   integer DRAIN_PACKETS      = 3000,    // Number of packets to drain the network
@@ -46,7 +45,7 @@ module ENoC_Network_tb
   parameter   integer N       = `N,                           // Number of inputs per router
   parameter   integer M       = `M,  
   parameter   integer INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH,  
-  parameter   integer NODE_QUEUE_SIZE = `INPUT_QUEUE_DEPTH*10);
+  parameter   integer NODE_QUEUE_SIZE = `INPUT_QUEUE_DEPTH*8);
 
 // --------------------------------------------------------------------------------------------------------------------
 // SIGNALS
@@ -92,6 +91,8 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------  
   longint f_time;                       // Pseudo time value/clock counter
   integer f_drain_count;                // Counts cycles computer has been draining for
+  
+  integer f_burst_count [0:NODES-1];
   
   integer f_port_s_i_data_count [0:NODES-1]; // Count number of packets simulated and added to the node queues
   integer f_total_s_i_data_count;            // Count total number of simulated packets
@@ -296,7 +297,7 @@ module ENoC_Network_tb
   end
   
   // RANDOM FLAG:  Valid (Bernoulli) and bursty (fixed burst size)
-  // ------------------------------------------------------------------------------------------------------------------
+  // ------------------------------------------------------------------------------------------------------------------ 
   always_ff@(posedge clk) begin
     if(~reset_n) begin
       for(int i=0; i<NODES; i++) begin
@@ -397,29 +398,25 @@ module ENoC_Network_tb
       f_throughput_cycle_count  <= 0;      
     end else begin
       for(int i=0; i<NODES; i++) begin
-        f_throughput_port_o_packet_count[i] <= (o_data_val[i] 
-                                               && (((f_total_s_i_data_count > WARMUP_PACKETS) 
-                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS)))
-                                               || (f_test_saturated == 1)))                                              
+        f_throughput_port_o_packet_count[i] <= ((o_data_val[i]) 
+                                               && (f_total_s_i_data_count > WARMUP_PACKETS) 
+                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS))) 
                                                ? f_throughput_port_o_packet_count[i] + 1 
                                                : f_throughput_port_o_packet_count[i];
-        f_throughput_port_i_packet_count[i] <= (i_data_val[i] 
-                                               && (((f_total_s_i_data_count > WARMUP_PACKETS) 
-                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS)))
-                                               || (f_test_saturated == 1)))                                                 
+        f_throughput_port_i_packet_count[i] <= ((i_data_val[i]) 
+                                               && (f_total_s_i_data_count > WARMUP_PACKETS) 
+                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS))) 
                                                ? f_throughput_port_i_packet_count[i] + 1 
                                                : f_throughput_port_i_packet_count[i];                                               
-        f_throughput_port_s_packet_count[i] <= (s_i_data_val[i] 
-                                               && (((f_total_s_i_data_count > WARMUP_PACKETS) 
-                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS)))
-                                               || (f_test_saturated == 1))) 
+        f_throughput_port_s_packet_count[i] <= ((s_i_data_val[i]) 
+                                               && (f_total_s_i_data_count > WARMUP_PACKETS) 
+                                               && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS))) 
                                                ? f_throughput_port_s_packet_count[i] + 1 
                                                : f_throughput_port_s_packet_count[i]; 
-        f_throughput_cycle_count    <= (((f_total_s_i_data_count > WARMUP_PACKETS) 
-                                    && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS)))
-                                    || (f_test_saturated == 1))                                     
+        f_throughput_cycle_count    <= ((f_total_s_i_data_count > WARMUP_PACKETS) 
+                                    && (f_total_s_i_data_count < (WARMUP_PACKETS+MEASURE_PACKETS))) 
                                     ? f_throughput_cycle_count + 1 
-                                    : f_throughput_cycle_count;     
+                                    : f_throughput_cycle_count;    
      end
     end
   end
@@ -664,7 +661,7 @@ module ENoC_Network_tb
     f_drain_count = 0;
     forever @(negedge clk) begin
       if (f_total_o_data_count >= ((WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) && (f_total_o_data_count != f_total_i_data_count)) begin
-        if (f_drain_count < 1000) begin
+        if (f_drain_count < 2000) begin
           f_drain_count = f_drain_count + 1;
         end else begin
           f_test_txrx = 0;
@@ -677,21 +674,21 @@ module ENoC_Network_tb
           $display(""); 
         end
       end else if ((f_total_o_data_count >= (WARMUP_PACKETS+MEASURE_PACKETS+DRAIN_PACKETS)) && (f_total_o_data_count == f_total_i_data_count)) begin
-        if (f_drain_count < 1000) begin
+        if (f_drain_count < 2000) begin
           f_drain_count = f_drain_count + 1;
         end else begin
           f_test_txrx = 1;
           f_test_complete = 1;        
         end
       end else if (f_test_saturated) begin
-        if (f_drain_count < 100) begin
+        if (f_drain_count < 2000) begin
           f_drain_count = f_drain_count + 1;
         end else begin
           f_test_txrx = 0;
           f_test_complete = 1;
         end
       end else if (o_data_val == 0) begin
-        if (f_drain_count <100) begin
+        if (f_drain_count <2000) begin
           f_drain_count = f_drain_count + 1;
         end else begin
           f_test_txrx = 0;
@@ -822,7 +819,7 @@ module ENoC_Network_tb
           `ifdef XYZSWAP
             $fwrite(resultstxt, "YES, ");
           `elsif XYSWAP
-            $fwrite(resultstxt, "YES, ");          
+            $fwrite(resultstxt, "YES, "); 
           `else
             $fwrite(resultstxt, "NO, ");  
           `endif 

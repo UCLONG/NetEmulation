@@ -19,11 +19,12 @@ module LIB_Allocator_InputFirst_iSLIP
   
   input  logic [0:N-1][0:M-1] i_request, // N, M-bit request vectors.
   
-  output logic [0:M-1][0:N-1] o_grant);  // M, N-bit Grant vectors
+  output logic [0:M-1][0:N-1] o_o_grant,   // M, N-bit Grant vectors
+  output logic [0:N-1][0:M-1] o_i_grant);  // N, M-bit Grant vectors (i.e the transpose)
   
-         logic [0:N-1][0:M-1] l_input_priority; // Input priority vector - rotated only when output grant served
          logic [0:N-1][0:M-1] l_input_grant;    // Result from input arbitration
          logic [0:M-1][0:N-1] l_intermediate;   // Transpose of input grant result for output arbitration
+         logic        [0:N-1] l_en;             // Used for PPE clock enable.
          
   // Input Arbitration
   // ------------------------------------------------------------------------------------------------------------------
@@ -45,10 +46,11 @@ module LIB_Allocator_InputFirst_iSLIP
   genvar i;
   generate
     for(i=0; i<N; i++) begin : INPUT_ARBITRATION
-      LIB_PPE #(.N(M))
-        gen_LIB_PPE (.i_request(i_request[i]),
-                     .i_priority(l_input_priority[i]),
-                     .o_grant(l_input_grant[i]));
+      LIB_PPE_RoundRobin #(.N(M))
+        gen_LIB_PPE_RoundRobin (.clk,
+                                .ce(l_en[i]),
+                                .reset_n,.i_request(i_request[i]),
+                                .o_grant(l_input_grant[i]));
     end
   endgenerate
   
@@ -76,7 +78,7 @@ module LIB_Allocator_InputFirst_iSLIP
                                 .ce,
                                 .reset_n,
                                 .i_request(l_intermediate[i]),
-                                .o_grant(o_grant[i]));
+                                .o_grant(o_o_grant[i]));
     end
   endgenerate
   
@@ -89,30 +91,28 @@ module LIB_Allocator_InputFirst_iSLIP
                                 .ce,
                                 .reset_n,
                                 .i_request(l_intermediate[i]),
-                                .o_grant(o_grant[i]));
+                                .o_grant(o_o_grant[i]));
     end
   endgenerate
   
   `endif
   
-  // iSLIP priority generation.  Updates the priority of the input arbiters only if that input was successful in
-  //  the last round of output arbitration.
-  // ------------------------------------------------------------------------------------------------------------------
-  always_ff@(posedge clk) begin
-    if(~reset_n) begin
-      for(int i=0; i<N; i++) begin
-        l_input_priority[i][0] <= 1'b1;
-        l_input_priority[i][1:M-1] <= 0;
+  // transposition of the output arbitration grant for indicating an enable to the requesting VCs and updating the
+  // priority.
+  always_comb begin
+    o_i_grant = '0;
+    for(int i=0; i<N; i++) begin
+      for(int j=0; j<M; j++) begin
+        o_i_grant[i][j] = o_o_grant[j][i];
       end
-    end else begin
-      if(ce) begin
-        for(int i=0; i<N; i++) begin
-          for(int j=0; j<M; j++) begin
-            l_input_priority[i] <= |o_grant[j][i] ? {l_input_priority[i][N-1], l_input_priority[i][0:N-2]} 
-                                                  : l_input_priority[i];
-          end
-        end
-      end
+    end
+  end
+
+  always_comb begin
+    l_en = '0;
+    for(int i=0; i<N; i++) begin
+      l_en |= o_i_grant[i];
+      // if this fails to synthesize, this is equivalent to: l_en[0:N-1] = l_en[0:N-1] | l_o_i_grant[i][0:N-1];
     end
   end
   

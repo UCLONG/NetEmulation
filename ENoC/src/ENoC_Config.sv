@@ -8,10 +8,10 @@
 // --------------------------------------------------------------------------------------------------------------------
 // Network Design Constants.  Sets parameter values which can be overridden when modules are instantiated.
 // --------------------------------------------------------------------------------------------------------------------
-`define NODES   64          // Total number of nodes
-`define X_NODES 4           // k(x,y,z)-ary.  Number of node columns - only considered for Torus
-`define Y_NODES 4           // k(x,y,z)-ary.  Number of node rows - only considered for Torus
-`define Z_NODES 4           // k(x,y,z)-ary.  Number of node layers
+`define NODES   64         // Total number of nodes
+`define X_NODES 8           // k(x,y,z)-ary.  Number of node columns - only considered for Torus (must be > 0)
+`define Y_NODES 8           // k(x,y,z)-ary.  Number of node rows - only considered for Torus (must be > 0)
+`define Z_NODES 1           // k(x,y,z)-ary.  Number of node layers (must be > 0)
 `define PAYLOAD 10          // Size of the data packet
 `define INPUT_QUEUE_DEPTH 4 // Globally set packet depth for input queues
 
@@ -19,22 +19,22 @@
 // Network Topology.  Only uncomment a single type.
 // --------------------------------------------------------------------------------------------------------------------
 `define MESH
- //`define CUBE
+//`define CUBE
 
 // Other network types should be defined here eg clos and butterfly
 
 // Crude 'or' function.  Configurations common to both MESH and TORUS can ifdef TORUS
 `ifdef MESH  
   `define TORUS 
-  `define DEGREE 7
-  `define N 7
-  `define M 7
+  `define DEGREE 5
+  `define N 5
+  `define M 5
 `endif
 `ifdef CUBE 
   `define TORUS 
-  `define DEGREE 7
-  `define N 7
-  `define M 7
+  `define DEGREE 5
+  `define N 5
+  `define M 5
 `endif
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -42,11 +42,15 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 // `define LOAD_BALANCE // adds a rotating crossbar between the input ports of the router, and the input channels
-// `define VOQ          // adds virtual output queues
+ `define VOQ          // adds virtual output queues
 // `define iSLIP        // Standard VOQ allocation is Round Robin, uncomment for iSLIP.
 // `define XYSWAP       // Changes the order of routing precedence for the XYZ dimension each cycle
- `define XYZSWAP       // Changes the order of routing precedence for the XYZ dimension each cycle
  `define DECOUPLE_EN  // Decouples the o_en of the FIFO from its i_en to prevent combinational loops
+
+// --------------------------------------------------------------------------------------------------------------------
+// Test Functions. Uncomment to add functionality.
+// --------------------------------------------------------------------------------------------------------------------
+//`define ROUTER_TB // Uncomment to change routing algorithm for router_tb
 
 // --------------------------------------------------------------------------------------------------------------------
 // Type Definitions.  Two types of packet depending on how the the packet is addressed
