@@ -30,12 +30,15 @@ module LIB_FIFO_packet_t
   output logic    o_data_val,        // Validates the data on o_data, held high until input enable received
   output logic    o_en,              // Outputs an enable, if high, i_data is written to memory
   
-  output logic    o_full, o_empty, o_near_empty);  // Control Flags
+  output logic    o_full, o_near_full, o_empty, o_near_empty);  // Control Flags
   
   typedef struct{logic rd_ptr, wr_ptr;} ptr;
   
          ptr      l_mem_ptr       [DEPTH-1:0];
          packet_t l_mem           [DEPTH-1:0];
+         integer    l_w_count;
+         integer    l_r_count;
+         integer    l_count;
 
 
   always_ff@(posedge clk) begin
@@ -55,16 +58,24 @@ module LIB_FIFO_packet_t
       o_data                  <= 0;
 
       o_full                  <= 0;
+      o_near_full             <= 0;
       o_empty                 <= 1;
-      o_near_empty            <= 0;         
+      o_near_empty            <= 0; 
 
- 
+      l_w_count <= 0;      
+      l_r_count <= 0;
+      l_count <= 0;
+      
     end else begin
       if(ce) begin
       
         // Memory Write
         // ------------------------------------------------------------------------------------------------------------
+        `ifdef DECOUPLE_EN
+        if(i_data_val && ~o_full) begin        
+        `else
         if(i_data_val && (~o_full || i_en)) begin
+        `endif
           // Write Data to memory location indicated by the write pointer
           for(int i=0; i<DEPTH; i++) begin
             l_mem[i] <= l_mem_ptr[i].wr_ptr ? i_data : l_mem[i];
@@ -74,11 +85,15 @@ module LIB_FIFO_packet_t
             l_mem_ptr[i+1].wr_ptr <= l_mem_ptr[i].wr_ptr;
           end
           l_mem_ptr[0].wr_ptr <= l_mem_ptr[DEPTH-1].wr_ptr;
+          l_w_count <= l_w_count+1;
         end
+        
+        assign l_count = l_w_count-l_r_count;
        
         // Output Write
         // ------------------------------------------------------------------------------------------------------------
-        if(i_en && ~o_empty) begin       
+        if(i_en && ~o_empty) begin  
+          l_r_count<= l_r_count+1;        
           // Data was read from memory so the next data needs loading into the output.
           if(o_near_empty) begin
             // Next memory location is currently empty, 
@@ -117,7 +132,6 @@ module LIB_FIFO_packet_t
         end
 
         // Full Flag.  
-
         // ------------------------------------------------------------------------------------------------------------
         if (~o_full) begin
           if(i_data_val && ~i_en) begin
@@ -128,9 +142,30 @@ module LIB_FIFO_packet_t
             end
           end      
         end else if (o_full) begin
-          o_full <= (~i_data_val && i_en) ? 1'b0 : 1'b1;       
+          `ifdef DECOUPLE_EN
+          o_full <= (i_en) ? 1'b0 : 1'b1;
+          `else
+          o_full <= (~i_data_val && i_en) ? 1'b0 : 1'b1;   
+          `endif          
         end
 
+        // Near Full Flag.  
+        // ------------------------------------------------------------------------------------------------------------
+        if (~o_near_full) begin
+          if(i_data_val && ~i_en) begin
+            for(int i=0; i<DEPTH; i++) begin
+              if(l_mem_ptr[i].wr_ptr) begin
+                o_near_full <= (i<DEPTH-2) ? l_mem_ptr[i+2].rd_ptr
+                                           : (i==DEPTH-2) ? l_mem_ptr[0].rd_ptr 
+                                                          : l_mem_ptr[1].rd_ptr;
+              end
+            end
+          end else begin
+            o_near_full = 0;
+          end          
+        end else if (o_near_full) begin
+          o_near_full <= ((i_data_val && i_en) || (~i_data_val && ~i_en)) ? 1'b0 : 1'b1; // XNOR
+        end
 
       
         // Empty Flag and Output Valid.
@@ -161,7 +196,7 @@ module LIB_FIFO_packet_t
                 if(l_mem_ptr[i].rd_ptr) begin   
                   if(i<DEPTH-2) begin
                     o_near_empty <= l_mem_ptr[i+2].wr_ptr;
-                  end else if(i==DEPTH-1) begin
+                  end else if(i==DEPTH-2) begin
                     o_near_empty <= l_mem_ptr[0].wr_ptr;
                   end else begin
                     o_near_empty <= l_mem_ptr[1].wr_ptr;
@@ -172,18 +207,25 @@ module LIB_FIFO_packet_t
           end
         
         end else if(o_near_empty) begin  
-          o_near_empty <= (~(i_en ^^ i_data_val)) ? 1'b1 : 1'b0;   
+          o_near_empty <= (i_en ^~ i_data_val) ? 1'b1 : 1'b0;   
         end
         
       end
     end 
   end 
 
-  // Valid/Enable.  Note, valid is simply the inverse of empty.  Also, enable is NOT simply the inverse of full.  The 
-  // FIFO can still accept data when full, provided data will be read in the same cycle.
+  // Valid/Enable.  Note, valid is simply the inverse of empty.  Also, enable is NOT always simply the inverse of full.   
+  // The FIFO can still accept data when full, provided data will be read in the same cycle.  However, in some cases,
+  // the input enable of a FIFO can depend on the output enable of another FIFO, in a network this can result in huge
+  // combinational loops.  To stop this, the o_en can be decoupled from the o_en signal, but this results in sub
+  // optimal performance of the FIFO.
   // ------------------------------------------------------------------------------------------------------------------
   assign o_data_val = ~o_empty;
+  `ifdef DECOUPLE_EN
+  assign o_en = (~o_full);  
+  `else
   assign o_en = (~o_full || i_en);
+  `endif
 
 
   endmodule

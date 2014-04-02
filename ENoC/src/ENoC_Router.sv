@@ -18,9 +18,11 @@ module ENoC_Router
 
 #(`ifdef TORUS
     parameter integer X_NODES,         // Total number of nodes on the X axis of the Mesh
-    parameter integer Y_NODES,         // Total number of nodes on the Y axis of the Mesh 
+    parameter integer Y_NODES,         // Total number of nodes on the Y axis of the Mesh
+    parameter integer Z_NODES,         // Total number of nodes on the Z axis of the Mesh
     parameter integer X_LOC,           // Current node location on the X axis of the Mesh
     parameter integer Y_LOC,           // Current node location on the Y axis of the Mesh
+    parameter integer Z_LOC,           // Current node location on the Y axis of the Mesh
   `else
     parameter integer NODES,           // Total number of nodes
     parameter integer LOC,             // Current node
@@ -126,18 +128,27 @@ module ENoC_Router
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS    
         ENoC_RouteCalculator #(`ifdef TORUS
-                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC))
+                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC), .M(M))
                                `else
-                                 .NODES(NODES), .LOC(LOC))
+                                 .NODES(NODES), .LOC(LOC), .M(M))
                                `endif
-          gen_ENoC_RouteCalculator (`ifdef TORUS
-                                      // Delete commented code once packet_t is sorted in NEMU
-                                      // .i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      // .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
-                                      .i_x_dest(l_data[i].x_dest),
-                                      .i_y_dest(l_data[i].y_dest),
+          gen_ENoC_RouteCalculator (`ifdef XYSWAP
+                                      .clk(clk),
+                                      .reset_n(reset_n),
+                                    `endif
+                                    `ifdef TORUS
+                                      // Delete commented code when packet_t is sorted in NEMU
+                                      // Following two lines adapt a single address into a two part address.  Will only
+                                      // work for networks where the number of nodes is a function of 2^2n where n is 
+                                      // a positive integer
+                                      //.i_x_dest(l_i_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      //.i_y_dest(l_i_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      // Correct code below
+                                      .i_x_dest(l_i_data[i].x_dest),
+                                      .i_y_dest(l_i_data[i].y_dest),
+                                      .i_z_dest(l_i_data[i].z_dest),
                                     `else
-                                      .i_dest(l_data[i].dest),
+                                      .i_dest(l_i_data[i].dest),
                                     `endif
                                     .i_val(l_i_data_val[i]),      // From upstream router
                                     .o_output_req(l_vc_req[i]));  // To VOQ module
@@ -152,22 +163,12 @@ module ENoC_Router
                        .reset_n,
                        .i_data(l_i_data[i]),         // Single input data from upstream router
                        .i_data_val(l_vc_req[i]),     // Valid from routecalc corresponds to required VC
-                       .o_en(l_o_en[i]),             // Single enable signal to the upstream router
+                       .o_en(l_o_en[i]),
                        .o_data(l_data[i]),           // Single output data to switch
                        .o_data_val(l_output_req[i]), // Packed request word to SwitchControl
                        .i_en(l_en[i]));              // Packed grant word from SwitchControl
       end
-    endgenerate
-    
-    // transposition of the output arbitration grant for indicating an enable to the VCs
-    always_comb begin
-      l_en = '0;
-      for(int i=0; i<N; i++) begin
-        for(int j=0; j<M; j++) begin
-          l_en[i][j] = l_output_grant[j][i];
-        end
-      end
-    end  
+    endgenerate 
     
   `else
   
@@ -190,8 +191,9 @@ module ENoC_Router
                                  .i_en(l_en[i]),               // From the SwitchControl
                                  .o_data(l_data[i]),           // To the Switch
                                  .o_data_val(l_data_val[i]),   // To the route calculator
-                                 .o_en(l_o_en[i]),             // To the upstream routers
-                                 .o_full(),                    // Not connected, o_en used for flow control
+                                 .o_en(l_o_en[i]),             
+                                 .o_full(),
+                                 .o_near_full(),                                 
                                  .o_empty(),                   // Not connected, not required for simple flow control
                                  .o_near_empty());             // Not connected, not required for simple flow control
       end
@@ -203,35 +205,32 @@ module ENoC_Router
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS  
         ENoC_RouteCalculator #(`ifdef TORUS
-                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC))
+                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC), .M(M))
                                `else
-                                 .NODES(NODES), .LOC(LOC))
+                                 .NODES(NODES), .LOC(LOC), .M(M))
                                `endif 
-          gen_ENoC_RouteCalculator (`ifdef TORUS
-                                      // Delete commented code once packet_t is sorted in NEMU
-                                      // .i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      // .i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+          gen_ENoC_RouteCalculator (`ifdef XYSWAP
+                                      .clk(clk),
+                                      .reset_n(reset_n),
+                                    `endif
+                                    `ifdef TORUS
+                                      // Delete commented code when packet_t is sorted in NEMU
+                                      // Following two lines adapt a single address into a two part address.  Will only
+                                      // work for networks where the number of nodes is a function of 2^2n where n is 
+                                      // a positive integer
+                                      //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
+                                      //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      // Correct code below
                                       .i_x_dest(l_data[i].x_dest),
                                       .i_y_dest(l_data[i].y_dest),
+                                      .i_z_dest(l_data[i].z_dest),
                                     `else
                                       .i_dest(l_data[i].dest),
                                     `endif
                                     .i_val(l_data_val[i]),                                      // From local FIFO
                                     .o_output_req(l_output_req[i]));                            // To Switch Control
       end
-    endgenerate
-    
-    // indicate to input FIFOs, according to arbitration results, that data will be read. Enable is high if any of the 
-    // output_grants indicate they have accepted an input.  This creates one N bit word, which is the logical 'or' of
-    // all the output_grants, as each output_grant is an N-bit onehot vector representing a granted input.
-    // ----------------------------------------------------------------------------------------------------------------
-    always_comb begin
-      l_en = '0;
-      for(int i=0; i<N; i++) begin
-        l_en |= l_output_grant[i];
-        // if this fails to synthesize, this is equivalent to: l_en[0:N-1] = l_en[0:N-1] | l_output_grant[i][0:N-1];
-      end
-    end   
+    endgenerate  
     
   `endif
  
@@ -245,7 +244,8 @@ module ENoC_Router
                              .reset_n,
                              .i_en(i_en),                      // From the downstream router
                              .i_output_req(l_output_req),      // From the local VCs or Route Calculator
-                             .o_output_grant(l_output_grant)); // To the local VCs or FIFOs
+                             .o_output_grant(l_output_grant),
+                             .o_input_grant(l_en)); // To the local VCs or FIFOs
  
   // Switch.  Switch uses onehot input from switch control.
   // ------------------------------------------------------------------------------------------------------------------
@@ -255,7 +255,6 @@ module ENoC_Router
                                      .i_data(l_data),        // From the local FIFOs
                                      .o_data(o_data));       // To the downstream routers
   
-
   // Output to downstream routers that the switch data is valid.  l_output_grant[output number] is a onehot vector, thus
   // if any of the bits are high the output referenced by [output number] has valid data.
   // ------------------------------------------------------------------------------------------------------------------                      
