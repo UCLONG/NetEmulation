@@ -7,7 +7,7 @@
 // Notes       : If adding a test case, include a step by step explanation.  There should be no need to remove
 //             : test cases.
 // --------------------------------------------------------------------------------------------------------------------
-`include "ENoC_Functions.sv"
+
 `include "ENoC_Config.sv"
 
 module LIB_FIFO_tb;

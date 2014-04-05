@@ -8,12 +8,13 @@
 // --------------------------------------------------------------------------------------------------------------------
 // Network Design Constants.  Sets parameter values which can be overridden when modules are instantiated.
 // --------------------------------------------------------------------------------------------------------------------
-`define NODES   64         // Total number of nodes
+`define NODES   64          // Total number of nodes
 `define X_NODES 8           // k(x,y,z)-ary.  Number of node columns - only considered for Torus (must be > 0)
 `define Y_NODES 8           // k(x,y,z)-ary.  Number of node rows - only considered for Torus (must be > 0)
 `define Z_NODES 1           // k(x,y,z)-ary.  Number of node layers (must be > 0)
 `define PAYLOAD 10          // Size of the data packet
 `define INPUT_QUEUE_DEPTH 4 // Globally set packet depth for input queues
+`define TIME_STAMP_SIZE 32
 
 // --------------------------------------------------------------------------------------------------------------------
 // Network Topology.  Only uncomment a single type.
@@ -56,34 +57,42 @@
 // Type Definitions.  Two types of packet depending on how the the packet is addressed
 // --------------------------------------------------------------------------------------------------------------------
 
-`define TIME_STAMP_SIZE 32
-
 `ifdef TORUS
+
+  `ifndef PACKET_T
   
   // Network packet type for testing TORUS addressed designs (Mesh/Torus)
   typedef struct packed {
     logic [`PAYLOAD-1:0]         data;
-    logic [log2(`X_NODES)-1:0]   x_source;
-    logic [log2(`Y_NODES)-1:0]   y_source; 
-    logic [log2(`Z_NODES)-1:0]   z_source;    
-    logic [log2(`X_NODES)-1:0]   x_dest;
-    logic [log2(`Y_NODES)-1:0]   y_dest; 
-    logic [log2(`Z_NODES)-1:0]   z_dest;    
+    logic [$clog2({1'b0,`X_NODES}+1)-1:0]   x_source;
+    logic [$clog2({1'b0,`Y_NODES}+1)-1:0]   y_source; 
+    logic [$clog2({1'b0,`Z_NODES}+1)-1:0]   z_source;    
+    logic [$clog2({1'b0,`X_NODES}+1)-1:0]   x_dest;
+    logic [$clog2({1'b0,`Y_NODES}+1)-1:0]   y_dest; 
+    logic [$clog2({1'b0,`Z_NODES}+1)-1:0]   z_dest;    
     logic                        valid;
     logic [`TIME_STAMP_SIZE-1:0] timestamp;
     logic                        measure;
   } packet_t; 
 
+  `define PACKET_T
+  `endif
+  
 `else
+
+  `ifndef PACKET_T
 
   // Network packet type for simple addressed designs
   typedef struct packed {
     logic [`PAYLOAD-1:0]         data;
-    logic [log2(`NODES)-1:0]     source;
-    logic [log2(`NODES)-1:0]     dest;
+    logic [$clog2({1'b0,`NODES}+1)-1:0]     source;
+    logic [$clog2({1'b0,`NODES}+1)-1:0]     dest;
     logic                        valid;
     logic [`TIME_STAMP_SIZE-1:0] timestamp;
     logic                        measure;
   } packet_t;
-
+  
+  `define PACKET_T
+  `endif
+  
 `endif

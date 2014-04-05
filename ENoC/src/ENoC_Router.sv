@@ -11,7 +11,6 @@
 //             : otherwise.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "ENoC_Functions.sv"
 `include "ENoC_Config.sv"   // Instructs whether or not Virtual Output Queues and Load Balancing are used.
 
 module ENoC_Router
@@ -141,8 +140,8 @@ module ENoC_Router
                                       // Following two lines adapt a single address into a two part address.  Will only
                                       // work for networks where the number of nodes is a function of 2^2n where n is 
                                       // a positive integer
-                                      //.i_x_dest(l_i_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      //.i_y_dest(l_i_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      //.i_x_dest(l_i_data[i].dest[($clog2({1'b0,X_NODES*Y_NODES}+1)/2)-1:0]),           
+                                      //.i_y_dest(l_i_data[i].dest[$clog2({1'b0,X_NODES*Y_NODES}+1)-1:({1'b0,X_NODES*Y_NODES}+1)/2)]),
                                       // Correct code below
                                       .i_x_dest(l_i_data[i].x_dest),
                                       .i_y_dest(l_i_data[i].y_dest),
@@ -218,8 +217,8 @@ module ENoC_Router
                                       // Following two lines adapt a single address into a two part address.  Will only
                                       // work for networks where the number of nodes is a function of 2^2n where n is 
                                       // a positive integer
-                                      //.i_x_dest(l_data[i].dest[(log2(X_NODES*Y_NODES)/2)-1:0]),           
-                                      //.i_y_dest(l_data[i].dest[log2(X_NODES*Y_NODES)-1:(log2(X_NODES*Y_NODES)/2)]),
+                                      //.i_x_dest(l_i_data[i].dest[($clog2({1'b0,X_NODES*Y_NODES}+1)/2)-1:0]),           
+                                      //.i_y_dest(l_i_data[i].dest[$clog2({1'b0,X_NODES*Y_NODES}+1)-1:({1'b0,X_NODES*Y_NODES}+1)/2)]),
                                       // Correct code below
                                       .i_x_dest(l_data[i].x_dest),
                                       .i_y_dest(l_data[i].y_dest),
