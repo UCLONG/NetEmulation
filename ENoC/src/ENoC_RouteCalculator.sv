@@ -32,11 +32,11 @@ module ENoC_RouteCalculator
   `endif
  
   `ifdef TORUS
-    input  logic [$clog2({1'b0,X_NODES}+1)-1:0] i_x_dest,      // Packet destination on the x axis
-    input  logic [$clog2({1'b0,Y_NODES}+1)-1:0] i_y_dest,      // Packet destination on the Y axis
-    input  logic [$clog2({1'b0,Z_NODES}+1)-1:0] i_z_dest,      // Packet destination on the Z axis
+    input  logic [$clog2(X_NODES+1)-1:0] i_x_dest,      // Packet destination on the x axis
+    input  logic [$clog2(Y_NODES+1)-1:0] i_y_dest,      // Packet destination on the Y axis
+    input  logic [$clog2(Z_NODES+1)-1:0] i_z_dest,      // Packet destination on the Z axis
   `else
-    input  logic [$clog2({1'b0,NODES}+1)-1:0]   i_dest,        // Packet destination
+    input  logic [$clog2(NODES+1)-1:0]   i_dest,        // Packet destination
   `endif
   
     input  logic                     i_val,         // Valid destination

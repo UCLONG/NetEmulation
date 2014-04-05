@@ -79,11 +79,11 @@ module ENoC_Network_tb
   // ------------------------------------------------------------------------------------------------------------------   
   logic [0:NODES-1] f_data_val;
   `ifdef TORUS  
-    logic [0:NODES-1][$clog2({1'b0,X_NODES}+1)-1:0] f_x_dest;
-    logic [0:NODES-1][$clog2({1'b0,Y_NODES}+1)-1:0] f_y_dest;
-    logic [0:NODES-1][$clog2({1'b0,Z_NODES}+1)-1:0] f_z_dest;
+    logic [0:NODES-1][$clog2(X_NODES+1)-1:0] f_x_dest;
+    logic [0:NODES-1][$clog2(Y_NODES+1)-1:0] f_y_dest;
+    logic [0:NODES-1][$clog2(Z_NODES+1)-1:0] f_z_dest;
   `else
-    logic [0:NODES-1][$clog2({1'b0,NODES}+1)-1:0] f_dest;
+    logic [0:NODES-1][$clog2(NODES+1)-1:0] f_dest;
   `endif
   
   // FLAGS:  Control

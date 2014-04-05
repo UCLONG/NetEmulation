@@ -64,12 +64,12 @@
   // Network packet type for testing TORUS addressed designs (Mesh/Torus)
   typedef struct packed {
     logic [`PAYLOAD-1:0]         data;
-    logic [$clog2({1'b0,`X_NODES}+1)-1:0]   x_source;
-    logic [$clog2({1'b0,`Y_NODES}+1)-1:0]   y_source; 
-    logic [$clog2({1'b0,`Z_NODES}+1)-1:0]   z_source;    
-    logic [$clog2({1'b0,`X_NODES}+1)-1:0]   x_dest;
-    logic [$clog2({1'b0,`Y_NODES}+1)-1:0]   y_dest; 
-    logic [$clog2({1'b0,`Z_NODES}+1)-1:0]   z_dest;    
+    logic [$clog2(`X_NODES+1)-1:0]   x_source;
+    logic [$clog2(`Y_NODES+1)-1:0]   y_source; 
+    logic [$clog2(`Z_NODES+1)-1:0]   z_source;    
+    logic [$clog2(`X_NODES+1)-1:0]   x_dest;
+    logic [$clog2(`Y_NODES+1)-1:0]   y_dest; 
+    logic [$clog2(`Z_NODES+1)-1:0]   z_dest;    
     logic                        valid;
     logic [`TIME_STAMP_SIZE-1:0] timestamp;
     logic                        measure;
@@ -85,8 +85,8 @@
   // Network packet type for simple addressed designs
   typedef struct packed {
     logic [`PAYLOAD-1:0]         data;
-    logic [$clog2({1'b0,`NODES}+1)-1:0]     source;
-    logic [$clog2({1'b0,`NODES}+1)-1:0]     dest;
+    logic [$clog2(`NODES+1)-1:0]     source;
+    logic [$clog2(`NODES+1)-1:0]     dest;
     logic                        valid;
     logic [`TIME_STAMP_SIZE-1:0] timestamp;
     logic                        measure;
