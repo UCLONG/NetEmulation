@@ -319,3 +319,93 @@ set(findall(gcf,'type','text'),'fontSize',8,'fontName','Times New Roman');
 set([hxlabel hylabel], 'FontWeight', 'bold');
 
 set(gcf,'color','w');
+
+%% Cube Latency
+
+figure;
+hold all;
+box on;
+
+xlim([0 80]);
+ylim([0 20]);
+
+set(gca, 'XTick', [10 20 30 40 50 60 70 80]);
+set(gca, 'XMinorTick', 'on');
+
+hylabel = ylabel('Avg. packet latency (cycles)');
+hxlabel = xlabel('Offered traffic (percentage of capacity)');
+
+hLsimp2DC   = plot(Osimp2DC, Lsimp2DC, '-+');
+hLsimp3DC    = plot(Osimp3DC, Lsimp3DC, '-.o');
+
+hLegend = legend([hLsimp2DC, hLsimp3DC], '64-port, 8-ary 2-cube, 4-packet queue', '64-port, 4-ary 3-cube, 4-packet queue', 'Location', 'SouthEast');
+
+set(findall(gcf,'type','axes'),'fontSize',8,'fontName','Times New Roman')
+set(findall(gcf,'type','text'),'fontSize',8,'fontName','Times New Roman')
+set([hxlabel hylabel], 'FontWeight', 'bold');
+
+set(gcf,'color','w');
+
+hold off;
+
+%% Cube Throughput
+
+figure;
+hold all;
+
+box on;
+axis square;
+
+xlim([0 100]);
+ylim([0 100]);
+
+set(gca, 'XTick', [0 20 40 60 80 100]);
+set(gca, 'YTick', [0 20 40 60 80 100]);
+set(gca, 'XMinorTick', 'on');
+set(gca, 'YMinorTick', 'on');
+
+hTsimp2DC   = plot(Osimp2DC, Tsimp2DC, '-+');
+hTsimp3DC    = plot(Osimp3DC, Tsimp3DC, '-.o');
+
+hylabel = ylabel('Throughput (percentage of capacity)');
+hxlabel = xlabel('Offered traffic (percentage of capacity)'); 
+
+hLegend = legend([hTsimp2DC, hTsimp3DC], '64-port, 8-ary 2-cube, 4-packet queue', '64-port, 4-ary 3-cube, 4-packet queue', '64 port, 8-ary 2-mesh with iSLIP VOQ, 4-packet queue', 'Location', 'NorthWest');
+
+set(findall(gcf,'type','axes'),'fontSize',8,'fontName','Times New Roman')
+set(findall(gcf,'type','text'),'fontSize',8,'fontName','Times New Roman')
+set([hxlabel hylabel], 'FontWeight', 'bold');
+
+set(gcf,'color','w');
+
+hold off;
+
+%% Cube Latency with Mesh Latency
+
+figure;
+hold all;
+box on;
+
+xlim([0 80]);
+ylim([0 20]);
+
+set(gca, 'XTick', [10 20 30 40 50 60 70 80]);
+set(gca, 'XMinorTick', 'on');
+
+hylabel = ylabel('Avg. packet latency (cycles)');
+hxlabel = xlabel('Offered traffic (percentage of capacity)');
+
+hLsimp2D  = plot(Osimp2D,  Lsimp2D,  '-+');
+hLsimp3D  = plot(Osimp3D,  Lsimp3D,  '--o');
+hLsimp2DC = plot(Osimp2DC, Lsimp2DC, ':*');
+hLsimp3DC = plot(Osimp3DC, Lsimp3DC, '-.d');
+
+hLegend = legend([hLsimp2D, hLsimp3D, hLsimp2DC, hLsimp3DC], '64-port, 8-ary 2-mesh, 4-packet queue', '64-port, 4-ary 3-mesh, 4-packet queue', '64-port, 8-ary 2-cube, 4-packet queue', '64-port, 4-ary 3-cube, 4-packet queue', 'Location', 'SouthEast');
+
+set(findall(gcf,'type','axes'),'fontSize',8,'fontName','Times New Roman')
+set(findall(gcf,'type','text'),'fontSize',8,'fontName','Times New Roman')
+set([hxlabel hylabel], 'FontWeight', 'bold');
+
+set(gcf,'color','w');
+
+hold off;

@@ -37,13 +37,13 @@ module ENoC_Router
   // ------------------------------------------------------------------------------------------------------------------
   input  packet_t [0:N-1] i_data,     // Input data from upstream [core, north, east, south, west]
   input  logic    [0:N-1] i_data_val, // Validates data from upstream [core, north, east, south, west]
-  output logic    [0:N-1] o_en,       // Enables data from upstream [core, north, east, south, west]
+  output logic    [0:M-1] o_en,       // Enables data from upstream [core, north, east, south, west]
   
   // Downstream Bus
   // ------------------------------------------------------------------------------------------------------------------
   output packet_t [0:M-1] o_data,     // Outputs data to downstream [core, north, east, south, west]
   output logic    [0:M-1] o_data_val, // Validates output data to downstream [core, north, east, south, west]
-  input  logic    [0:M-1] i_en);      // Enables output to downstream [core, north, east, south, west]
+  input  logic    [0:N-1] i_en);      // Enables output to downstream [core, north, east, south, west]
   
   // Local Signals common to all definitions
   // ------------------------------------------------------------------------------------------------------------------

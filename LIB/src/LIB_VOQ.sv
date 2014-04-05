@@ -30,7 +30,7 @@ module LIB_VOQ
   // ------------------------------------------------------------------------------------------------------------------
   output packet_t         o_data,     // Outputs data from a single FIFO to Switch according to i_en
   output logic    [0:M-1] o_data_val, // Validates output data to Arbiter
-  input  logic    [0:M-1] i_en);      // Enables output to switch
+  input  logic    [0:M-1] i_en);      // Enable from switch
   
   // Local Signals
   // ------------------------------------------------------------------------------------------------------------------
@@ -70,14 +70,7 @@ module LIB_VOQ
       if(i_en       == (1<<(M-1)-i)) begin 
         o_data      <= l_o_data[i];
       end
-      // catch signals that speculatively apply valid
-      //if(i_data_val == (1<<(M-1)-i)) begin
-      //  o_en        <= l_o_en[i];
-      // provide an output enable for signals that look for the enable signal before asserting (such as when enable is
-      // used for arbitration.
-      //end else begin
       o_en        = &l_o_en;
-      //end
     end
   end
   

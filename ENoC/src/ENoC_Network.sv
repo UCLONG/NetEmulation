@@ -226,8 +226,27 @@ module ENoC_Network
   
   `else
   
-    // INSERT OTHER NETWORK TYPE DECLARATIONS HERE
-  
+    genvar i;
+    generate
+    for (i=0; i<NODES; i++) begin : GENERATE_ROUTERS
+          ENoC_Router #(.NODES(NODES),
+                        .LOC(i),
+                        .INPUT_QUEUE_DEPTH(INPUT_QUEUE_DEPTH),
+                        .N(N),
+                        .M(M))
+            gen_ENoC_Router (.clk(clk),
+                             .reset_n(reset_n),
+                             .i_data(l_datain[i]),          // From the upstream routers and nodes
+                             .i_data_val(l_datain_val[i]),  // From the upstream routers and nodes
+                             .o_en(l_o_en[i]),              // To the upstream routers
+                             .o_data(l_dataout[i]),         // To the downstream routers
+                             .o_data_val(l_dataout_val[i]), // To the downstream routers
+                             .i_en(l_i_en[i]));             // From the downstream routers
+        end
+      end
+    end
+    endgenerate
+    
   `endif
   
 endmodule

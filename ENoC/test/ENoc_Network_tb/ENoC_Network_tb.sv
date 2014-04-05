@@ -45,7 +45,7 @@ module ENoC_Network_tb
   parameter   integer N       = `N,                           // Number of inputs per router
   parameter   integer M       = `M,  
   parameter   integer INPUT_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH,  
-  parameter   integer NODE_QUEUE_SIZE = `INPUT_QUEUE_DEPTH*8);
+  parameter   integer NODE_QUEUE_DEPTH = `INPUT_QUEUE_DEPTH*8);
 
 // --------------------------------------------------------------------------------------------------------------------
 // SIGNALS
@@ -235,7 +235,7 @@ module ENoC_Network_tb
   genvar i;
   generate
     for (i=0; i<NODES; i++) begin : GENERATE_INPUT_QUEUES
-      LIB_FIFO_packet_t #(.DEPTH(NODE_QUEUE_SIZE))
+      LIB_FIFO_packet_t #(.DEPTH(NODE_QUEUE_DEPTH))
         gen_LIB_FIFO_packet_t (.clk,
                                .ce(1'b1),
                                .reset_n,
