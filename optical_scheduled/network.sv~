@@ -1,0 +1,54 @@
+// File: network.sv
+// Philip Watts, UCL, June 2012
+//
+// An example of a network structure in SystemVerilog to interface
+// with the top level code 'net_emulation'
+
+//`include "config.sv"
+
+module network (
+  input logic clk,
+  input logic rst,
+  input packet_t flit_in [0:`PORTS-1],
+  output packet_t flit_out [0:`PORTS-1],
+  output logic [`PORTS-1:0] full);
+    
+    // Internal Signals
+    packet_t dout_tx [0:`PORTS-1];
+    logic [0:`PORTS-1][`PORTS-1:0]      grant_switch;
+    logic [0:`PORTS-1][log2(`PORTS):0]  req, req_delayed;
+    logic [0:`PORTS-1][log2(`PORTS):0]  grant, grant_delayed ; 
+    
+    // Instantiate allocator
+    alloc_simple inst_alloc (
+      .req(req_delayed),
+      .grant(grant),
+      .grant_switch(grant_switch),
+      .clk(clk),
+      .rst(rst));
+
+    //Instantiate txs
+    generate for (genvar k=0;k<`PORTS;k++)
+          tx_simple inst_txs (
+            .req(req[k]),
+            .dout(dout_tx[k]),
+            .full(full[k]),
+            .din(flit_in[k]),
+            .grant(grant_delayed[k]),
+            .clk(clk),
+            .rst(rst));
+    endgenerate
+      
+    // Instantiate optical switch including delays    
+    photonic_switch inst_switch(
+      .dout(flit_out),  
+      .grant_out (grant_delayed),
+      .req_out(req_delayed),    
+      .din(dout_tx), 
+      .grant_in(grant),
+      .req_in(req),
+      .switch_config(grant_switch),
+      .clk(clk));	
+          
+      
+endmodule   
