@@ -8,9 +8,9 @@
 // --------------------------------------------------------------------------------------------------------------------
 // Network Design Constants.  Sets parameter values which can be overridden when modules are instantiated.
 // --------------------------------------------------------------------------------------------------------------------
-`define NODES   16          // Total number of nodes
-`define X_NODES 4           // k(x,y,z)-ary.  Number of node columns - only considered for Torus (must be > 0)
-`define Y_NODES 4           // k(x,y,z)-ary.  Number of node rows - only considered for Torus (must be > 0)
+`define NODES   64          // Total number of nodes
+`define X_NODES 8           // k(x,y,z)-ary.  Number of node columns - only considered for Torus (must be > 0)
+`define Y_NODES 8           // k(x,y,z)-ary.  Number of node rows - only considered for Torus (must be > 0)
 `define Z_NODES 1           // k(x,y,z)-ary.  Number of node layers (must be > 0)
 `define PAYLOAD 512         // Size of the data packet
 `define INPUT_QUEUE_DEPTH 4 // Globally set packet depth for input queues

@@ -144,8 +144,8 @@ module ENoC_Router
                                         // n is a positive integer.  Only currently works for 2D networks, but the 
                                         // principle can be expanded to 3D if required.  Delete once packet_t is
                                         // synchronised between ENoC and NetEmulation
-                                        .i_x_dest(l_i_data[i].dest[($clog2({1'b0,X_NODES*Y_NODES})/2)-1:0]),           
-                                        .i_y_dest(l_i_data[i].dest[$clog2({1'b0,X_NODES*Y_NODES})-1:(({1'b0,X_NODES*Y_NODES}+1)/2)]),
+                                        .i_x_dest(l_i_data[i].dest[($clog2({X_NODES*Y_NODES})/2)-1 : 0                            ]),           
+                                        .i_y_dest(l_i_data[i].dest[($clog2({X_NODES*Y_NODES})-1)   : ($clog2({X_NODES*Y_NODES})/2)]),
                                         .i_z_dest(0),
                                       `else
                                         .i_x_dest(l_i_data[i].x_dest),
@@ -227,13 +227,13 @@ module ENoC_Router
                                         // n is a positive integer.  Only currently works for 2D networks, but the 
                                         // principle can be expanded to 3D if required.  Delete once packet_t is
                                         // synchronised between ENoC and NetEmulation
-                                        .i_x_dest(l_i_data[i].dest[($clog2({X_NODES*Y_NODES})/2)-1 : 0                            ]),           
-                                        .i_y_dest(l_i_data[i].dest[($clog2({X_NODES*Y_NODES})-1)   : ($clog2({X_NODES*Y_NODES})/2)]),
+                                        .i_x_dest(l_data[i].dest[($clog2({X_NODES*Y_NODES})/2)-1 : 0                            ]),           
+                                        .i_y_dest(l_data[i].dest[($clog2({X_NODES*Y_NODES})-1)   : ($clog2({X_NODES*Y_NODES})/2)]),
                                         .i_z_dest(1'b0),
                                       `else
-                                        .i_x_dest(l_i_data[i].x_dest),
-                                        .i_y_dest(l_i_data[i].y_dest),
-                                        .i_z_dest(l_i_data[i].z_dest),
+                                        .i_x_dest(l_data[i].x_dest),
+                                        .i_y_dest(l_data[i].y_dest),
+                                        .i_z_dest(l_data[i].z_dest),
                                       `endif
                                     `else
                                       .i_dest(l_data[i].dest),
