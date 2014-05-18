@@ -35,7 +35,7 @@ module net_emulation ();
 /////////////////////////////////////////////  
   
   logic clk;
-  logic [31:0] timestamp;
+  logic [29:0] timestamp;
   logic measure;
   logic source_on;
   packet_t pkt_in [0:`PORTS-1] /* synthesis keep */; 

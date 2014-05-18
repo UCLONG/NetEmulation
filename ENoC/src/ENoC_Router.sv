@@ -11,7 +11,7 @@
 //             : otherwise.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "ENoC_Config.sv"   // Instructs whether or not Virtual Output Queues and Load Balancing are used.
+`include "ENoC/src/ENoC_Config.sv"   // Instructs whether or not Virtual Output Queues and Load Balancing are used.
 
 module ENoC_Router
 
@@ -127,7 +127,9 @@ module ENoC_Router
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS    
         ENoC_RouteCalculator #(`ifdef TORUS
-                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC), .M(M))
+                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), 
+                                 .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC), 
+                                 .M(M))
                                `else
                                  .NODES(NODES), .LOC(LOC), .M(M))
                                `endif
@@ -136,16 +138,20 @@ module ENoC_Router
                                       .reset_n(reset_n),
                                     `endif
                                     `ifdef TORUS
-                                      // Delete commented code when packet_t is sorted in NEMU
-                                      // Following two lines adapt a single address into a two part address.  Will only
-                                      // work for networks where the number of nodes is a function of 2^2n where n is 
-                                      // a positive integer
-                                      //.i_x_dest(l_i_data[i].dest[($clog2({1'b0,X_NODES*Y_NODES}+1)/2)-1:0]),           
-                                      //.i_y_dest(l_i_data[i].dest[$clog2({1'b0,X_NODES*Y_NODES}+1)-1:({1'b0,X_NODES*Y_NODES}+1)/2)]),
-                                      // Correct code below
-                                      .i_x_dest(l_i_data[i].x_dest),
-                                      .i_y_dest(l_i_data[i].y_dest),
-                                      .i_z_dest(l_i_data[i].z_dest),
+                                      `ifdef OLD_PACKET_T
+                                        // Following two lines adapt a single address into a two part address.  Will 
+                                        // only work for networks where the number of nodes is a function of 2^2n where
+                                        // n is a positive integer.  Only currently works for 2D networks, but the 
+                                        // principle can be expanded to 3D if required.  Delete once packet_t is
+                                        // synchronised between ENoC and NetEmulation
+                                        .i_x_dest(l_i_data[i].dest[($clog2({X_NODES*Y_NODES})/2)-1 : 0                            ]),           
+                                        .i_y_dest(l_i_data[i].dest[($clog2({X_NODES*Y_NODES})-1)   : ($clog2({X_NODES*Y_NODES})/2)]),
+                                        .i_z_dest(0),
+                                      `else
+                                        .i_x_dest(l_i_data[i].x_dest),
+                                        .i_y_dest(l_i_data[i].y_dest),
+                                        .i_z_dest(l_i_data[i].z_dest),
+                                      `endif
                                     `else
                                       .i_dest(l_i_data[i].dest),
                                     `endif
@@ -162,7 +168,7 @@ module ENoC_Router
                        .reset_n,
                        .i_data(l_i_data[i]),         // Single input data from upstream router
                        .i_data_val(l_vc_req[i]),     // Valid from routecalc corresponds to required VC
-                       .o_en(l_o_en[i]),
+                       .o_en(l_o_en[i]),             // To the upstream router, possibly via load balance
                        .o_data(l_data[i]),           // Single output data to switch
                        .o_data_val(l_output_req[i]), // Packed request word to SwitchControl
                        .i_en(l_en[i]));              // Packed grant word from SwitchControl
@@ -190,9 +196,9 @@ module ENoC_Router
                                  .i_en(l_en[i]),               // From the SwitchControl
                                  .o_data(l_data[i]),           // To the Switch
                                  .o_data_val(l_data_val[i]),   // To the route calculator
-                                 .o_en(l_o_en[i]),             
-                                 .o_full(),
-                                 .o_near_full(),                                 
+                                 .o_en(l_o_en[i]),             // To the upstream router, possibly via load balance
+                                 .o_full(),                    // Not connected, not required for simple flow control
+                                 .o_near_full(),               // Not connected, not required for simple flow control                  
                                  .o_empty(),                   // Not connected, not required for simple flow control
                                  .o_near_empty());             // Not connected, not required for simple flow control
       end
@@ -204,7 +210,9 @@ module ENoC_Router
     generate
       for (i=0; i<N; i++) begin : GENERATE_ROUTE_CALCULATORS  
         ENoC_RouteCalculator #(`ifdef TORUS
-                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), .X_LOC(X_LOC), .Y_LOC(Y_LOC), .Z_LOC(Z_LOC), .M(M))
+                                 .X_NODES(X_NODES), .Y_NODES(Y_NODES), .Z_NODES(Z_NODES), 
+                                 .X_LOC(X_LOC),     .Y_LOC(Y_LOC),     .Z_LOC(Z_LOC), 
+                                 .M(M))
                                `else
                                  .NODES(NODES), .LOC(LOC), .M(M))
                                `endif 
@@ -213,16 +221,20 @@ module ENoC_Router
                                       .reset_n(reset_n),
                                     `endif
                                     `ifdef TORUS
-                                      // Delete commented code when packet_t is sorted in NEMU
-                                      // Following two lines adapt a single address into a two part address.  Will only
-                                      // work for networks where the number of nodes is a function of 2^2n where n is 
-                                      // a positive integer
-                                      //.i_x_dest(l_i_data[i].dest[($clog2({1'b0,X_NODES*Y_NODES}+1)/2)-1:0]),           
-                                      //.i_y_dest(l_i_data[i].dest[$clog2({1'b0,X_NODES*Y_NODES}+1)-1:({1'b0,X_NODES*Y_NODES}+1)/2)]),
-                                      // Correct code below
-                                      .i_x_dest(l_data[i].x_dest),
-                                      .i_y_dest(l_data[i].y_dest),
-                                      .i_z_dest(l_data[i].z_dest),
+                                      `ifdef OLD_PACKET_T
+                                        // Following two lines adapt a single address into a two part address.  Will 
+                                        // only work for networks where the number of nodes is a function of 2^2n where
+                                        // n is a positive integer.  Only currently works for 2D networks, but the 
+                                        // principle can be expanded to 3D if required.  Delete once packet_t is
+                                        // synchronised between ENoC and NetEmulation
+                                        .i_x_dest(l_data[i].dest[($clog2({X_NODES*Y_NODES})/2)-1 : 0                            ]),           
+                                        .i_y_dest(l_data[i].dest[($clog2({X_NODES*Y_NODES})-1)   : ($clog2({X_NODES*Y_NODES})/2)]),
+                                        .i_z_dest(1'b0),
+                                      `else
+                                        .i_x_dest(l_data[i].x_dest),
+                                        .i_y_dest(l_data[i].y_dest),
+                                        .i_z_dest(l_data[i].z_dest),
+                                      `endif
                                     `else
                                       .i_dest(l_data[i].dest),
                                     `endif
@@ -243,8 +255,8 @@ module ENoC_Router
                              .reset_n,
                              .i_en(i_en),                      // From the downstream router
                              .i_output_req(l_output_req),      // From the local VCs or Route Calculator
-                             .o_output_grant(l_output_grant),
-                             .o_input_grant(l_en)); // To the local VCs or FIFOs
+                             .o_output_grant(l_output_grant),  // To the switch, and to the downstream router
+                             .o_input_grant(l_en));            // To the local VCs or FIFOs
  
   // Switch.  Switch uses onehot input from switch control.
   // ------------------------------------------------------------------------------------------------------------------

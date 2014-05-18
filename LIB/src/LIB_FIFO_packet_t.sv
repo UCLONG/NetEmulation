@@ -10,7 +10,7 @@
 // Notes       : FIFO uses the packet definition from config.sv.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "ENoC_Config.sv"   // Change this config file to wherever packet_t is declared
+`include "config.sv"   // Change this config file to wherever packet_t is declared
 
 module LIB_FIFO_packet_t
 
@@ -33,8 +33,8 @@ module LIB_FIFO_packet_t
   
   typedef struct{logic rd_ptr, wr_ptr;} ptr;
   
-         ptr      l_mem_ptr       [DEPTH-1:0];
-         packet_t l_mem           [DEPTH-1:0];
+         ptr        l_mem_ptr       [DEPTH-1:0];
+         packet_t   l_mem           [DEPTH-1:0];
          integer    l_w_count;
          integer    l_r_count;
          integer    l_count;
