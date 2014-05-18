@@ -1,2 +1,4 @@
 *.bak
 *.sv.bak
+work/
+vsim.wlf
