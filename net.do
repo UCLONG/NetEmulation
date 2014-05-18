@@ -31,10 +31,10 @@ vlog arbiters/round_robin_arbiter.sv
 ###############################################################
 
 # SIMPLE OPTICAL NETWORK
-vlog simple_optical/tx_simple.sv
-vlog simple_optical/alloc_simple.sv
-vlog simple_optical/network.sv
-vlog simple_optical/photonic_switch.sv
+#vlog simple_optical/tx_simple.sv
+#vlog simple_optical/alloc_simple.sv
+#vlog simple_optical/network.sv
+#vlog simple_optical/photonic_switch.sv
 
 # SPECULATIVE OPTICAL NETWORK
 #vlog spec_optical/random_deq_mem.sv
@@ -63,8 +63,8 @@ vlog simple_optical/photonic_switch.sv
 # See note on wiki mesh page about adding wrapper
 #vlog mesh/
 #vlog mesh/
-#vlog mesh/
-#vlog mesh/network.sv
+vlog LIB/src/*.sv
+vlog ENoC/src/*.sv
 
 # ADD ANOTHER NETWORK HERE
 #vlog other_network/submodule.sv

@@ -7,7 +7,7 @@
 `include "functions.sv"
 
 // Network parameters 
-`define PORTS       4        // Currently only works with power of 2 : to be fixed
+`define PORTS       64        // Currently only works with power of 2 : to be fixed
 `define FIFO_DEPTH  8
 `define FIFO_DEPTH_RECIR  8
 `define PAYLOAD     512   // Packet payload in bits
