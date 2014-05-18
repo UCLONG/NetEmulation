@@ -8,7 +8,7 @@
 // Uses        : ENoC_Router.sv
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "ENoC_Config.sv"    // Defines parameters and topology
+`include "ENoC/src/ENoC_Config.sv"    // Defines parameters and topology
 
 module ENoC_Network
 

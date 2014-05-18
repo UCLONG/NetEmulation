@@ -5,7 +5,7 @@ module packet_sink (
   input logic rst, 
   input packet_t pkt_rx [0:`PORTS-1],
   input packet_t pkt_tx [0:`PORTS-1],
-  input logic [31:0] timestamp,
+  input logic [29:0] timestamp,
   input logic [`PORTS-1:0] input_fifo_error, 
   input logic [`PORTS-1:0] net_full,
   input logic [`PORTS-1:0] nearly_full,

@@ -7,7 +7,7 @@
 // Notes       : Need better way of fitting X_NODES and Y_NODES, currently on works for perfect square.
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "../config.sv"
+`include "config.sv"
 
 module network
 
@@ -18,7 +18,8 @@ module network
   input  packet_t              pkt_in   [0:`PORTS-1],
   
   output packet_t              pkt_out  [0:`PORTS-1],
-  output logic    [0:`PORTS-1] net_full             );
+  output logic    [0:`PORTS-1] net_full,
+  output logic    [0:`PORTS-1] nearly_full  );
   
          // NetEmulation packs all data, ENoC doesn't.  Unpacked and packed ports can not be connected.  The following 
          // local logic is used to pack and unpack data as required to interface between NetEmulation and ENoC ports.
@@ -31,15 +32,12 @@ module network
          logic    [0:`PORTS-1] l_o_data_val;
          
          // NetEmulation requires a logic high when the network is full, ENoC uses a valid/enable protocol that sets
-         // the enable as high when it will receive data.  Thus, the enable needs to be inverted.  The following
-         // Local logic allows the net_full signal to be inverted
-         logic    [0:`PORTS-1] l_o_en;
-         
-         // When using Virtual Output Queues, ENoC requires the nodes to first check if an enable exists before 
-         // asserting a valid.  This is because, due to the nature of the VOQ, the output enable will be low if only   
-         // one of the virtual channels is full.  If the channel that would receive the packet is not full, and the TX  
-         // valid is high it will accept the packet, but the TX side will believe it has not been sent as the output   
-	       // enable is low.  The following local logic is used to ensure this.
+         // the enable as high when it will receive data.  Thus, the enable needs to be inverted.  Further, when
+         // using Virtual Output Queues, ENoC requires the nodes to first check if an enable exists before asserting a
+         // valid.  This is because, due to the nature of the VOQ, the output enable will be low if only one of the
+         // virtual channels is full.  If the channel that would receive the packet is not full, and the TX valid is
+         // high it will accept the packet, but the TX side will believe it has not been sent as the output enable is 
+	       // low. The following local logic is used to ensure this and allows the net_full signal to be inverted.
          logic    [0:`PORTS-1] l_o_en;
   
   // Perform connections as described above.
@@ -48,6 +46,7 @@ module network
       l_pkt_in[i]     = pkt_in[i];
       pkt_out[i]      = l_pkt_out[i];
       net_full[i]     = ~l_o_en[i];
+      net_full[i]     = 0; // Not used by ENoC, but could be easily added if required (FIFOs provide required signal)
       l_i_data_val[i] = pkt_in[i].valid && l_o_en[i];
     end
   end

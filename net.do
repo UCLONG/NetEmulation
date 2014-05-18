@@ -13,17 +13,17 @@ vlog fifo_pkt.sv
 vlog packet_source.sv
 vlog packet_sink.sv
 vlog ppe.sv
-vlog sr_packet.sv
-vlog sr_req.sv
-vlog sr_grant.sv
-vlog sr_config.sv
+#vlog sr_packet.sv
+#vlog sr_req.sv
+#vlog sr_grant.sv
+#vlog sr_config.sv
 
 ###############################################################
 # Compile arbiter
 # Uncomment only one of these options
 ###############################################################
 #vlog arbiters/matrix_arbiter.sv
-vlog arbiters/round_robin_arbiter.sv
+#vlog arbiters/round_robin_arbiter.sv
 
 ###############################################################
 # Compile specific network code 
@@ -88,8 +88,8 @@ vsim -t 1ps -novopt net_emulation
 ################################################################
 # Setup wave window and top level signals
 ################################################################
-#do optical_wave.do
-do wave_spec.do
+do optical_wave.do
+#do wave_spec.do
 
 
 

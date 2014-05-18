@@ -6,7 +6,7 @@
 // Uses        : LIB_PPE_RoundRobin.sv, LIB_Allocator_InputFirst_RoundRobin.sv, LIB_Allocator_InputFirst_iSLIP.sv 
 // --------------------------------------------------------------------------------------------------------------------
 
-`include "ENoC_Config.sv" // Defines whether or not VOQs are used, and whether or not to use iSLIP
+`include "ENoC/src/ENoC_Config.sv" // Defines whether or not VOQs are used, and whether or not to use iSLIP
 
 module ENoC_SwitchControl
 
