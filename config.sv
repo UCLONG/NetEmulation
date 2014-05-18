@@ -7,7 +7,7 @@
 `include "functions.sv"
 
 // Network parameters 
-`define PORTS       64        // Currently only works with power of 2 : to be fixed
+`define PORTS       16        // Currently only works with power of 2 : to be fixed
 `define FIFO_DEPTH  8
 `define FIFO_DEPTH_RECIR  8
 `define PAYLOAD     512   // Packet payload in bits
@@ -35,7 +35,7 @@
 // Add rate calculations for other networks and (un)comment as required
 
 // Traffic type (only one should be uncommented)
-//`define UNIFORM
+`define UNIFORM
 //`define HOTSPOT
 // Also should parameterise the hotspot - currently sends to middle cores in
 // a mesh network
@@ -44,7 +44,7 @@
 //`define STREAM_SOURCE 5  //Source of hot spot
 //`define STREAM_DEST  1   //Destination of hot spot (if the number of destination port is greater than the number of source port, than minus one when you put this number. eg. STREAM_DEST 4 means actually reach port 5.)
 // Could also parameterise stream ports - currently hard coded to 1 - 10
-`define TRACE
+//`define TRACE
 
 // Arbiter implementation parameters
 `define LOOKAHEAD 4   // Removed from the instantiation in simple_alloc - add instead directly in arbiter code
